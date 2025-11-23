@@ -1,1101 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Terminal, Shield, Users, AlertTriangle, Lock,
-  ArrowLeft, Folder, FileText, X, Mail, Map as MapIcon,
-  Activity, Cpu, Radio, Crosshair, Menu, Zap, Fingerprint, Eye,
-  Skull, FileWarning, Search, Thermometer, Droplet, Wind,
-  Database, Wifi, Battery, Anchor, Layers, FileCode
-} from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault 254 Terminal</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide React Icons (Fixed Version & CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.263.1/dist/lucide-react.umd.min.js"></script>
 
-/* --------------------------------------------------------------------------------
-  LORE DATABASE: VAULT 254 (ULTIMATE EDITION - v3.0 BLUEPRINT UPDATE)
-  --------------------------------------------------------------------------------
-*/
-
-const CURRENT_DATE = "23.10.2275";
-const ADMIN_PASSWORD = "ADMIN_KEY"; 
-
-// --- DIAGNOSTIC DATA FOR MAP (EXPANDED TO 7 LEVELS) ---
-const ROOM_DATA = {
-  // L0 - SURFACE
-  "AIRLOCK": {
-    status: "SEALED",
-    integrity: "99.9%",
-    power: "-0.1 GW",
-    temp: "270K",
-    staff: "Auto-Turrets",
-    log: "External radiation levels: 450 rads/sec. Atmospheric toxicity: Lethal. Door seal holding. Scratches detected on outer hull."
-  },
-
-  // L1 - ADMIN
-  "SECURITY": {
-    status: "ACTIVE",
-    integrity: "100%",
-    power: "-0.1 GW",
-    temp: "293K",
-    staff: "Chief Drake",
-    log: "Platoon Alpha reports 'Phantom Knocking' on the Blast Door again. Sensors confirm zero contact. Morale is fraying."
-  },
-  "OVERSEER": {
-    status: "LOCKED",
-    integrity: "100%",
-    power: "-0.05 GW",
-    temp: "294K",
-    staff: "Overseer Caldwell",
-    log: "Override enabled. External comms array is picking up patterns that match Pre-War Enclave ciphers. I cannot let the council know."
-  },
-  
-  // L3 - OPS
-  "HYDROPONICS": {
-    status: "CRITICAL",
-    integrity: "85%",
-    power: "-0.4 GW",
-    temp: "295K",
-    staff: "Dir. Ashford",
-    log: "Soy crop yield down 14%. Genetic drift detected in corn strains. We need new seeds, or we face starvation in 5 years."
-  },
-  "MEDICAL": {
-    status: "BUSY",
-    integrity: "92%",
-    power: "-0.2 GW",
-    temp: "294K",
-    staff: "Dr. Morrison",
-    log: "Treating 15 new cases of 'Vault Fever' (Acute Claustrophobia). Patient 44 tried to dig through the cafeteria wall with a spoon."
-  },
-  "WATER_PURIFICATION": {
-    status: "STABLE",
-    integrity: "99%",
-    power: "-0.3 GW",
-    temp: "288K",
-    staff: "Auto-Sys",
-    log: "Filtration chip operating at 99.9% efficiency. We have only ONE spare chip left. God help us if it breaks."
-  },
-
-  // L4 - ENG
-  "REACTOR": {
-    status: "WARNING",
-    integrity: "98.4%",
-    power: "4.2 GW",
-    temp: "450K",
-    staff: "Chief Eng. Volkova",
-    log: "Turbine B vibration increasing. We are using scrap metal shims to keep the bearing stable. It's a temporary fix for a permanent problem."
-  },
-
-  // L5 - GEOTHERMAL (NEW)
-  "GEO_TAP": {
-    status: "ONLINE",
-    integrity: "88%",
-    power: "+1.2 GW",
-    temp: "850K",
-    staff: "Auto-Sys",
-    log: "Magma pressure stabilizing. Heat exchange valves are calcified. Efficiency down 12%. Warning: Seismic activity affecting intake pipes."
-  },
-  "STORAGE_B": {
-    status: "LOCKED",
-    integrity: "95%",
-    power: "MINIMAL",
-    temp: "290K",
-    staff: "Quartermaster",
-    log: "Manifest Check: 500 crates of Nuka-Cola (Flat), 200 crates of Fancy Lads Snack Cakes (Preserved). We are running low on spare servos for the T-45s."
-  },
-
-  // L6 - THE ARK (MOVED DOWN)
-  "CRYO-BAY": {
-    status: "LOCKED",
-    integrity: "100%",
-    power: "-1.2 GW (High Draw)",
-    temp: "70K",
-    staff: "AUTOMATED",
-    log: "Pod 089 power fluctuation. Neural activity in Executive Subject suggests REM sleep nightmare cycle. Do not thaw."
-  },
-
-  // L7 - BLACK SITE
-  "LAB_ALPHA": {
-    status: "SEALED",
-    integrity: "45%",
-    power: "OFFLINE",
-    temp: "250K",
-    staff: "UNKNOWN",
-    log: "Sector sealed since 2090. Containment breach protocols active. Do not enter without hazmat clearance."
-  },
-  "SPECIMEN_CONT": {
-    status: "CRITICAL",
-    integrity: "12%",
-    power: "ERR",
-    temp: "ERR",
-    staff: "NONE",
-    log: "Motion sensors detecting movement inside Specimen Tank 4. The tank was supposed to be empty."
-  }
-};
-
-const EMAILS = [
-  {
-    id: 'msg_001',
-    from: 'Caldwell, V. (Overseer)',
-    to: 'Council_All',
-    subject: 'MINUTES: Emergency Session 2275.10.22',
-    date: '23.10.2275',
-    body: `TRANSCRIPT SUMMARY:\n\nTOPIC: Surface Expedition Proposal #44\n\nTORRES (Reclamationist): "We are starving by degrees. The crops are failing. We need to open the door."\n\nASHFORD (Preservationist): "The sensors detect high-band radiation and seismic tremors. There is a war up there. If we open the door, we die."\n\nVOLKOVA (Innovator): "I don't care about the war. I need copper. The reactor wiring is 200 years old."\n\nDRAKE (Guard): "If we open the door, my men need heavier weapons. 10mm pistols won't stop what the sensors are hearing."\n\nVERDICT: Proposal DENIED by Overseer Veto. Isolation continues.`
-  },
-  {
-    id: 'msg_002',
-    from: 'Dr. Morrison (Chief Medical)',
-    to: 'Caldwell, V. (Overseer)',
-    subject: 'PSYCH PROFILE: "The Fear"',
-    date: '21.10.2275',
-    body: `Vincent,\n\nI'm seeing a new neurosis in the children. They are drawing the sky, but they draw it as fire. \n\nWe have taught them that the Vault is Safety and the Surface is Hell for so long that they are developing agoraphobia before they even see a door. \n\nIf we ever do open the Vault, half the population might refuse to leave. They are institutionalized. We are breeding a generation of moles.`
-  },
-  {
-    id: 'msg_003',
-    from: 'Comms Officer Wu',
-    to: 'Drake, R. (Security)',
-    subject: 'ANOMALY: The "Patriarch" Signal',
-    date: '19.10.2275',
-    body: `Chief,\n\nI recorded the "Ghost Signal" again. 1400kHz. \n\nIt's a voice. Deep. Authoritative. Talking about "America" and "The Enclave." \n\nAshford says it's a pre-war recording loop. But the voice referenced "The Mutant Threat." Super Mutants didn't exist in 2077, did they? \n\nSomeone is alive up there. And they sound organized.`
-  },
-  {
-    id: 'msg_004',
-    from: 'Unknown Sender',
-    to: 'Volkova (Engineering)',
-    subject: 'RE: The Vibration',
-    date: '18.10.2275',
-    body: `I traced the vibration source. It's not the turbine. It's coming from BELOW Level 5.\n\nThere isn't supposed to be anything below Level 5.\n\nI found a service hatch in the maintenance tunnels painted black. It was warm to the touch.`
-  }
-];
-
-const FILE_SYSTEM = {
-  root: {
-    id: 'root',
-    name: 'MAIN DRIVE',
-    type: 'folder',
-    children: ['mission', 'military', 'admin', 'engineering', 'medical', 'classified', 'black_site']
-  },
-
-  // --- MISSION ---
-  mission: {
-    id: 'mission',
-    name: 'MISSION PROFILE',
-    type: 'folder',
-    children: ['project_ark', 'langston_memo', 'timeline_events']
-  },
-  project_ark: {
-    id: 'project_ark',
-    name: 'PROJECT_OVERVIEW.TXT',
-    type: 'file',
-    content: `SUBJECT: The A.R.C. (Vault 254)\nCLASSIFICATION: V-TEC EYES ONLY\n\nThe Administrative Reclamation Command is a CONTROL VAULT designed to preserve the corporate hierarchy of Vault-Tec.\n\nCORE MANDATE:\n1. SURVIVE the nuclear exchange.\n2. WAIT for the "Great Silence" (estimated 20 years post-war).\n3. AWAKEN the 120 Executives.\n4. RESTRUCTURE the United States under corporate governance.\n\nCURRENT STATUS: CRITICAL FAILURE OF STEP 2.\nThe "Great Silence" never occurred. Sensors indicate the surface is still a warzone.`
-  },
-  langston_memo: {
-    id: 'langston_memo',
-    name: 'LANGSTON_MEMO.LOG',
-    type: 'file',
-    content: `FROM: Frederick Langston, Board of Directors\nDATE: August 14, 2076\n\n"We are the architects of the future."\n\nLet the politicians in Washington burn. Let the generals play with their toys until they break them. When the smoke clears, the world will need Management. It will need Structure. It will need Us.\n\nWe will sleep through the chaos. And when we wake, we will not be rebuilding a democracy. We will be building a Department.`
-  },
-  timeline_events: {
-    id: 'timeline_events',
-    name: 'HISTORY_LOG.DAT',
-    type: 'file',
-    content: `[2077.10.23] The Great Seal. 120 Executives frozen. 369 Staff active.\n[2102.05.20] Overseer Caldwell I cancels opening. "Atmosphere toxic."\n[2180.11.02] The "Deep Tremor." A massive seismic event shakes the vault. Believed to be a secondary nuclear detonation nearby, or a massive structural collapse on the surface.\n[2245.03.15] The "Static Age" begins. Comms pick up increased encrypted chatter. We cannot decipher it.\n[2275.10.23] PRESENT DAY. 198 Years of Silence.`
-  },
-
-  // --- MILITARY ---
-  military: {
-    id: 'military',
-    name: 'SECURITY & DEFENSE',
-    type: 'folder',
-    children: ['force_manifest', 'arsenal_count', 'death_spiral', 'simulation_logs', 'surface_threats']
-  },
-  force_manifest: {
-    id: 'force_manifest',
-    name: 'ROSTER_ACTIVE.DB',
-    type: 'file',
-    content: `COMMANDER: Chief Roland Drake\n\nACTIVE FORCE: 120 Personnel\n\nPLATOON ALPHA ("The Wall")\n- Duty: The Great Door\n- Mental State: High paranoia. They stare at the blast door monitors 24/7 waiting for a knock that never comes.\n\nPLATOON BETA ("The Watch")\n- Duty: Internal Order\n- Mental State: Strained. Policing your own cousins and neighbors creates friction.\n\nPLATOON GAMMA ("The Reserve")\n- Duty: Maintenance & Training\n- Mental State: Boredom. Most "accidental discharges" happen in Gamma.`
-  },
-  arsenal_count: {
-    id: 'arsenal_count',
-    name: 'ARMORY_INVENTORY.TXT',
-    type: 'file',
-    content: `WARNING: NON-REPLENISHABLE STOCKPILE\n\nSMALL ARMS:\n- 10mm Pistols (N99): 150 Units\n- R91 Assault Rifles: 200 Units (Wood stocks rotting, replaced with polymer scrap)\n\nHEAVY EQUIPMENT:\n- T-45d Power Armor: 20 Suits\n > Operational: 18\n > Servos Seized: 2\n > Note: These suits are 200 years old. Rubber seals are cracking. Hydraulic fluid leaks are common.\n\nMISSING CAPABILITIES:\n- We have NO indirect fire support (Mortars/Howitzers).\n- We have NO air support.\n- We have NO anti-armor weaponry beyond limited grenades.`
-  },
-  death_spiral: {
-    id: 'death_spiral',
-    name: 'THREAT_ANALYSIS_DEATH_SPIRAL.DOC',
-    type: 'file',
-    content: `STRATEGIC ASSESSMENT: "THE DEATH SPIRAL"\n\nPREMISE: We engage a hostile surface force of unknown capability.\n\nTHE MATH:\nWe cannot build guns. We cannot build bullets (at scale). We cannot build armor.\n\nIf we win a battle but lose 10 Rifles and 2 Soldiers, we have permanently lost 5% of our combat power. \n\nIf the enemy is a "Scavenger Tribe," they can recruit more bodies. We cannot.\nIf the enemy is a "Technological Power," they can manufacture weapons. We cannot.\n\nCONCLUSION:\nVictory is mathematically impossible in a sustained conflict. Our only defense is obscurity. We must never be found.`
-  },
-  simulation_logs: {
-    id: 'simulation_logs',
-    name: 'WAR_GAME_RESULTS.LOG',
-    type: 'file',
-    content: `SIMULATION PARAMETERS: PRE-WAR DATA EXTRAPOLATION\n\nSCENARIO: "Communist Invasion Force"\nRESULT: DEFEAT. (Our T-45s overwhelmed by Hei Gui stealth suits).\n\nSCENARIO: "Civilian Riot (Class 5)"\nRESULT: VICTORY. (Tear gas and crowd control effective).\n\nSCENARIO: "Rogue US Army Remnant"\nRESULT: TOTAL DEFEAT in 14 minutes.\nNOTE: The simulation assumes the Rogue Army possesses T-51b armor and Plasma weaponry. Our ballistic vests offered zero resistance.`
-  },
-  surface_threats: {
-    id: 'surface_threats',
-    name: 'SURFACE_SENSOR_LOGS.DAT',
-    type: 'file',
-    content: `SENSOR ARRAY (PASSIVE MODE ONLY)\n\n[2275.05.12] SEISMIC: Heavy rhythmic vibrations detected directly overhead. Pattern suggests bi-pedal movement but mass exceeds 2,000kg. \nTHEORY: Giant Fauna? Or heavy construction equipment? \n\n[2275.08.14] ACOUSTIC: High-pitch turbine whine detected. Moving fast. Doppler shift indicates supersonic flight.\nTHEORY: Pre-war aircraft? It sounded too clean to be a scavenger jury-rig. Who is flying jets 200 years later?\n\n[2275.10.01] RADIATION: Spike in background Rads. Wind patterns suggest a source from the D.C. Ruins. \nTHEORY: Did another bomb go off?`
-  },
-
-  // --- ADMIN ---
-  admin: {
-    id: 'admin',
-    name: 'ADMINISTRATION',
-    type: 'folder',
-    children: ['factions', 'census', 'goat_results', 'contraband_list']
-  },
-  factions: {
-    id: 'factions',
-    name: 'POLITICAL_LANDSCAPE.DOC',
-    type: 'file',
-    content: `INTERNAL FACTION SUMMARY (2275)\n\n1. LOYALISTS (Overseer Caldwell)\n Status Quo. They believe the vault is a Holy Sanctuary. To leave is to die.\n\n2. RECLAMATIONISTS (Torres)\n They believe the Sensors are lying. They think the surface is safe and the Overseer is keeping us here to maintain power.\n\n3. PRESERVATIONISTS (Ashford)\n They have evolved into a near-cult of safety. Some refuse to even look at photos of the surface, calling it "The Hellscape."\n\n4. INNOVATORS (Volkova)\n Frustrated engineers. They are tearing apart non-essential walls just to get copper wire for their unauthorized projects.\n\n5. THE GUARDS (Drake)\n They are restless. A standing army with no enemy eventually finds one within.`
-  },
-  census: {
-    id: 'census',
-    name: 'POPULATION_STATS.DAT',
-    type: 'file',
-    content: `TOTAL POPULATION: 1,000\n- Active: 880\n- Cryo: 120\n\nTHE "GREY DRIFT":\nMedical's slang for our genetic stagnation. We look too much alike. The gene pool is a puddle. \n\nPSYCHOLOGICAL PROFILE:\n- Depression Rate: 45%\n- "Vault Fever" (Claustrophobia): 12%\n- Agoraphobia (Fear of Outside): 85%\n\nMost residents are terrified of the concept of "The Sky." They ask if the blue light burns.`
-  },
-  goat_results: {
-    id: 'goat_results',
-    name: 'RECENT_GOAT_ASSIGNMENTS.TXT',
-    type: 'file',
-    content: `CLASS OF 2275 ASSIGNMENTS:\n\n- Johnson, T. -> Waste Recycler. (Note: Subject requested "Anything but the Reactor," cited fear of radiation leaks).\n\n- Miller, S. -> Security. (Note: Aggressive tendencies. Punched the instructor during the "Grandmother" scenario).\n\n- Vance, A. -> Archives. (Note: Obsessed with pre-war maps. Caught trying to calculate the Vault's exact GPS coordinates).`
-  },
-  contraband_list: {
-    id: 'contraband_list',
-    name: 'CONFISCATED_ITEMS.LOG',
-    type: 'file',
-    content: `SECURITY LOCKER 44 CONTENTS:\n\n1. "Grognak the Barbarian" Comic (Issue #4)\n Reason: Depicts surface violence as "heroic."\n\n2. Home-made Radio Receiver\n Reason: Unauthorized frequency scanning. Confiscated from Engineering Apprentice Wu.\n\n3. "The Sky Book"\n Reason: A child's drawing book filled with pictures of the sun. Deemed "Psychologically Destabilizing" by the Preservationists.`
-  },
-
-  // --- MEDICAL ---
-  medical: {
-    id: 'medical',
-    name: 'MEDICAL DEPT',
-    type: 'folder',
-    children: ['grey_drift_report', 'psych_evals', 'supply_status', 'pod_089_dreams']
-  },
-  grey_drift_report: {
-    id: 'grey_drift_report',
-    name: 'GENETIC_STAGNATION.DOC',
-    type: 'file',
-    content: `SUBJECT: THE GREY DRIFT\n\nWe are seeing a 14% increase in recessive traits in the latest generation. Immune systems are failing against common mold spores that were harmless 50 years ago.\n\nThe population is biologically bored. DNA requires competition and variety. We have neither. If we do not introduce external genetic material (i.e., surface survivors) within 60 years, we risk a cascade failure of viable births.`
-  },
-  psych_evals: {
-    id: 'psych_evals',
-    name: 'VAULT_FEVER_TRACKER.TXT',
-    type: 'file',
-    content: `*** EPIDEMIC ALERT: VAULT FEVER ***\n\nSymptoms: Acute Claustrophobia, Irrational Anger, Hallucinations of "Open Space".\n\nCASE LOG:\n- Patient 104 (Age 19): Reports hearing voices in the ventilation shafts. Diagnosis: Sensory deprivation hallucination.\n- Patient 44 (Age 45): Refuses to eat Hydroponic Corn. Claims it "tastes like grey." Attempted to dig through cafeteria wall with a spoon.\n- Patient 09 (Security): Recurring nightmare about the blast door opening and "the fire coming in." Diagnosis: Acute Agoraphobia.`
-  },
-  pod_089_dreams: {
-    id: 'pod_089_dreams',
-    name: 'POD_089_NEURAL_DUMP.RAW',
-    type: 'file',
-    content: `SUBJECT: EXECUTIVE X-4\nSTATUS: FROZEN\n\nNEURAL INTERFACE LOG:\n[ERROR: Buffer Overflow]\nSubject is dreaming. But the dreams are synchronous with external radio waves. \n\nCONTENT ANALYSIS:\n- Images of a "Oil Rig" in the ocean.\n- Repeated phrase: "The Enclave returns."\n- Visions of armored soldiers burning a village.\n\nHYPOTHESIS: The Cryo-Pod's neural link is acting as an antenna. The subject isn't dreaming; they are receiving.`
-  },
-
-  // --- ENGINEERING ---
-  engineering: {
-    id: 'engineering',
-    name: 'ENGINEERING DEPT',
-    type: 'folder',
-    children: ['reactor_status', 'water_chip', 'maintenance_schedule']
-  },
-  reactor_status: {
-    id: 'reactor_status',
-    name: 'REACTOR_DIAGNOSTICS.LOG',
-    type: 'file',
-    content: `SYSTEM: General Atomics V-Series\nSTATUS: ONLINE (DEGRADED)\n\nTHE VIBRATION:\nThe primary turbine has a wobble. It started in 2260. It's getting worse. We call it "The Heartbeat." You can feel it in the floor on Level 4.\n\nWe don't have the bearings to fix it. If we shut it down to overhaul it, we lose power to Cryo. If we lose power to Cryo, the Executives die. If the Executives die, the mission ends.\n\nSo we let it wobble.`
-  },
-  water_chip: {
-    id: 'water_chip',
-    name: 'WATER_PURIFICATION.SYS',
-    type: 'file',
-    content: `COMPONENT: Water Chip (Model 2077-B)\nSTATUS: FUNCTIONAL\n\nWe are using the last spare. The original failed in 2150. The first spare cracked in 2210. This is it. \n\nWe are filtering urine, sweat, and reactor runoff through a chip that is 198 years old. If this chip breaks, we have to open the door to find water. And if we open the door, the Preservationists might riot.`
-  },
-
-  // --- CLASSIFIED ---
-  classified: {
-    id: 'classified',
-    name: 'RESTRICTED AREA',
-    type: 'folder',
-    locked: true,
-    children: ['executive_manifest', 'wakeup_protocol', 'overseer_journal']
-  },
-  executive_manifest: {
-    id: 'executive_manifest',
-    name: 'EXECUTIVE_BOARD_LIST.ENC',
-    type: 'file',
-    content: `*** EYES ONLY ***\n\nCRYO-POD 001: Frederick Langston (Board Member)\nCRYO-POD 002: Leonard Vance (CEO)\nCRYO-POD 003: Sarah Halloway (Director)\nCRYO-POD 004: Marcus Thorne (VP Ops)\nCRYO-POD 005: [CORRUPTED DATA]\n...\nCRYO-POD 120: S. Calvin\n\nNOTE: Pod 089 is showing fluctuating power levels. The occupant may be suffering from "Freezer Burn" (Neural decay). Do not thaw unless necessary.`
-  },
-  wakeup_protocol: {
-    id: 'wakeup_protocol',
-    name: 'RECLAMATION_DAY.EXE',
-    type: 'file',
-    content: `PROTOCOL 77-RECLAIM\n\nStep 1: Unseal Blast Doors.\nStep 2: Establish perimeter.\nStep 3: Initiate Thaw Cycle (12 Hours).\n\nWARNING: We have never tested the thawing process. Pre-war estimates suggested a 15% lethality rate. We might wake up a room full of corpses.`
-  },
-  overseer_journal: {
-    id: 'overseer_journal',
-    name: 'OVERSEER_PRIVATE.LOG',
-    type: 'file',
-    content: `They look to me for hope. I have none.\n\nThe sensors show radiation spikes. The radio picks up signals I can't decode—voices that sound human but wrong. The reactor is shaking the floorboards.\n\nMy grandfather told me the surface was a graveyard. But the sensors say it's alive. And if it's alive, it's had 200 years to get strong. We are 1,000 soft people in a metal can, guarding 120 frozen corporate suits who probably caused the end of the world.\n\nGod help us if they find the door.`
-  },
-
-  // --- BLACK SITE (NEW) ---
-  black_site: {
-    id: 'black_site',
-    name: 'LEVEL 7 (BLACK SITE)',
-    type: 'folder',
-    locked: true,
-    children: ['project_chimera', 'containment_log']
-  },
-  project_chimera: {
-    id: 'project_chimera',
-    name: 'PROJECT_CHIMERA_PROPOSAL.DOC',
-    type: 'file',
-    content: `FROM: V-Tec Research Division\nTO: Overseer (Eyes Only)\n\nSUBJECT: F.E.V. Strains\n\nWe have been granted a small sample of the Forced Evolutionary Virus for "Long-Term Adaptation Study." The goal is not super-soldiers. The goal is radiation resistance. If we can tweak the human genome to process gamma radiation as energy, we won't need the Vaults anymore.\n\nWe are keeping the samples in Level 7. The residents must never know.`
-  },
-  containment_log: {
-    id: 'containment_log',
-    name: 'CONTAINMENT_BREACH_2090.LOG',
-    type: 'file',
-    content: `[2090.04.12] Test Subject 04 broke restraints. It has grown... bone plating.\n[2090.04.13] Security Team Delta lost. It ate them.\n[2090.04.14] Level 7 sealed. Concrete poured into elevator shafts. We are telling the residents it was a "Geothermal Collapse."\n\nIt is still down there. We can hear it scratching the concrete.`
-  }
-};
-
-
-/* --------------------------------------------------------------------------------
-  COMPONENTS
-  --------------------------------------------------------------------------------
-*/
-
-const CRTOverlay = () => (
-  <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
-    {/* Scanlines */}
-    <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_3px,3px_100%]"></div>
-    {/* Flicker */}
-    <div className="absolute inset-0 bg-white opacity-[0.03] animate-flicker"></div>
-    {/* Vignette */}
-    <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(0,0,0,0)_50%,rgba(0,0,0,1)_100%)]"></div>
-  </div>
-);
-
-const BootSequence = ({ onComplete }) => {
-  const [lines, setLines] = useState([]);
-  const endRef = useRef(null);
-
-  const bootText = [
-    "ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL",
-    "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
-    "-SERVER B-",
-    "> BIOS CHECK... OK",
-    "> LOADING KERNEL... OK",
-    "> CHECKING MEMORY... 64KB OK",
-    "> MOUNTING VOLUMES... OK",
-    "> LOADING HOLOTAPES... OK",
-    "> CONNECTING TO VAULT-TEC REGIONAL NET... FAILED (NO SIGNAL)",
-    "> RETRYING CONNECTION... FAILED (NO SIGNAL)",
-    "> CONNECTING TO VAULT 254 LOCAL... ESTABLISHED",
-    "> INITIALIZING BLUEPRINT SYSTEM v3.0...",
-    "> LOADING 'ARC_OS'...",
-    "...",
-    "WELCOME, ADMINISTRATOR."
-  ];
-
-  useEffect(() => {
-    let delay = 0;
-    bootText.forEach((line, index) => {
-      delay += Math.random() * 300 + 100;
-      setTimeout(() => {
-        setLines(prev => [...prev, line]);
-        if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" });
-        if (index === bootText.length - 1) {
-          setTimeout(onComplete, 1200);
+    <style>
+        /* Global Styles */
+        body {
+            background-color: #000;
+            overflow: hidden;
         }
-      }, delay);
-    });
-  }, []);
-
-  return (
-    <div className="flex flex-col h-full justify-start items-start p-8 font-mono text-green-500 text-lg md:text-xl leading-relaxed overflow-y-auto">
-      {lines.map((line, i) => (
-        <div key={i} className="animate-pulse-fast mb-1">{line}</div>
-      ))}
-      <div ref={endRef} />
-      <div className="animate-blink bg-green-500 h-6 w-3 mt-2 inline-block"></div>
-    </div>
-  );
-};
-
-const WindowHeader = ({ icon: Icon, title, onClose }) => (
-  <div className="bg-green-900/40 p-2 md:p-3 border-b border-green-700 flex justify-between items-center touch-none shrink-0 select-none">
-    <div className="flex items-center gap-2 text-green-400 font-bold text-sm md:text-base tracking-wider">
-      <Icon size={18} />
-      <span>{title}</span>
-    </div>
-    <button
-      onClick={onClose}
-      className="text-green-500 hover:text-green-200 hover:bg-green-900/50 p-1 rounded transition-colors"
-      aria-label="Close"
-    >
-      <X size={20} />
-    </button>
-  </div>
-);
-
-// --- TERMINAL APP ---
-const TerminalApp = ({ onClose }) => {
-  const [path, setPath] = useState(['root']);
-  const [viewingFile, setViewingFile] = useState(null);
-  const [unlocked, setUnlocked] = useState([]);
-  const [unlockInput, setUnlockInput] = useState('');
-  const [unlockTarget, setUnlockTarget] = useState(null);
-
-  const currentFolder = FILE_SYSTEM[path[path.length - 1]];
-
-  const handleNavigate = (id) => {
-    const item = FILE_SYSTEM[id];
-    if (item.type === 'file') {
-      setViewingFile(id);
-    } else {
-      if (item.locked && !unlocked.includes(id)) {
-        setUnlockTarget(id);
-      } else {
-        setPath([...path, id]);
-      }
-    }
-  };
-
-  const handleUnlock = (e) => {
-    e.preventDefault();
-    if (unlockInput.toUpperCase() === ADMIN_PASSWORD) {
-      setUnlocked([...unlocked, unlockTarget]);
-      setPath([...path, unlockTarget]);
-      setUnlockTarget(null);
-      setUnlockInput('');
-    } else {
-      setUnlockInput('');
-      alert("ACCESS DENIED: SECURITY VIOLATION LOGGED");
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
-      <WindowHeader icon={Terminal} title="ROBCO FILE EXPLORER v2.1" onClose={onClose} />
-
-      <div className="flex-1 p-4 overflow-hidden flex flex-col relative">
-        {unlockTarget ? (
-          <div className="flex flex-col items-center justify-center h-full animate-fade-in p-4 text-center">
-            <Lock size={64} className="text-red-500 mb-6 animate-pulse" />
-            <h3 className="text-red-500 font-bold text-xl md:text-2xl mb-2">RESTRICTED ACCESS</h3>
-            <p className="text-red-400 text-sm mb-6 max-w-xs">Enter Override Code. Too many attempts will trigger silent alarm.</p>
-            <form onSubmit={handleUnlock} className="flex flex-col gap-4 w-full max-w-xs">
-              <input
-                autoFocus
-                type="text"
-                value={unlockInput}
-                onChange={e => setUnlockInput(e.target.value)}
-                className="bg-black border-2 border-green-500 text-green-500 p-3 text-center focus:outline-none focus:border-green-300 uppercase text-lg shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                placeholder="PASSWORD"
-              />
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setUnlockTarget(null)} className="flex-1 border border-green-800 text-green-800 p-2 hover:bg-green-900/20">CANCEL</button>
-                <button type="submit" className="flex-1 bg-green-900 hover:bg-green-700 text-green-100 p-2 font-bold transition-colors">AUTHENTICATE</button>
-              </div>
-            </form>
-          </div>
-        ) : viewingFile ? (
-          <div className="flex flex-col h-full animate-fade-in">
-            <div className="flex justify-between items-center mb-4 border-b border-green-800 pb-2 shrink-0">
-              <span className="text-green-300 font-bold uppercase truncate pr-4 text-sm md:text-base">
-                {FILE_SYSTEM[viewingFile].name}
-              </span>
-              <button onClick={() => setViewingFile(null)} className="text-xs border border-green-500 px-3 py-1 hover:bg-green-900/50 transition-colors">
-                CLOSE FILE
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar pb-10">
-              <pre className="whitespace-pre-wrap font-mono text-green-400 text-xs md:text-sm leading-relaxed max-w-3xl">
-                {FILE_SYSTEM[viewingFile].content}
-              </pre>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 mb-4 text-xs text-green-600 border-b border-green-900 pb-2 overflow-x-auto whitespace-nowrap shrink-0">
-              {path.length > 1 && (
-                <button onClick={() => setPath(path.slice(0, -1))} className="hover:text-green-300 flex items-center p-1 mr-2 border border-green-900 hover:border-green-500">
-                  <ArrowLeft size={14} className="mr-1" /> UP
-                </button>
-              )}
-              <span className="text-green-800">ROOT</span>
-              {path.slice(1).map(id => (
-                <span key={id} className="flex items-center">
-                  <span className="mx-1 text-green-800">/</span>
-                  <span className="text-green-500">{FILE_SYSTEM[id].name}</span>
-                </span>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar pb-8">
-              {currentFolder.children.map(childId => {
-                const child = FILE_SYSTEM[childId];
-                const isLocked = child.locked && !unlocked.includes(childId);
-                return (
-                  <button
-                    key={childId}
-                    onClick={() => handleNavigate(childId)}
-                    className={`flex items-start gap-3 p-3 border transition-all text-left group
-                      ${isLocked 
-                        ? 'border-red-900/50 hover:border-red-500 bg-red-900/5' 
-                        : 'border-green-900 hover:border-green-400 hover:bg-green-900/20 bg-green-900/5'
-                      }
-                    `}
-                  >
-                    {child.type === 'folder'
-                      ? (isLocked 
-                          ? <Lock className="text-red-500 mt-1 shrink-0" size={20}/> 
-                          : <Folder className="text-yellow-600 group-hover:text-yellow-400 mt-1 shrink-0" size={20}/>)
-                      : <FileCode className="text-blue-500 group-hover:text-blue-300 mt-1 shrink-0" size={20}/>
-                    }
-                    <div className="overflow-hidden min-w-0">
-                      <div className={`font-bold text-sm truncate ${isLocked ? 'text-red-400' : 'text-green-300'}`}>
-                        {child.name}
-                      </div>
-                      <div className="text-[10px] text-green-700 group-hover:text-green-500">
-                        {child.type === 'folder' ? 'DIRECTORY' : 'DOCUMENT'}
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// --- MAIL APP ---
-const MailApp = ({ onClose }) => {
-  const [selected, setSelected] = useState(null);
-
-  return (
-    <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
-      <WindowHeader icon={Mail} title="FLASHMAIL v1.0" onClose={onClose} />
-
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-        {/* List View */}
-        <div className={`w-full md:w-1/3 border-b md:border-b-0 md:border-r border-green-800 overflow-y-auto custom-scrollbar ${selected ? 'hidden md:block' : 'block'}`}>
-          {EMAILS.map(email => (
-            <button
-              key={email.id}
-              onClick={() => setSelected(email)}
-              className={`w-full text-left p-4 border-b border-green-900 hover:bg-green-900/20 transition-colors
-                ${selected?.id === email.id ? 'bg-green-900/40 border-l-4 border-l-green-500' : 'border-l-4 border-l-transparent'}
-              `}
-            >
-              <div className="font-bold text-green-300 text-xs md:text-sm truncate mb-1">{email.from}</div>
-              <div className="text-green-500 text-xs md:text-sm truncate mb-1 opacity-90">{email.subject}</div>
-              <div className="text-green-700 text-[10px] text-right">{email.date}</div>
-            </button>
-          ))}
-        </div>
-
-        {/* Reading Pane */}
-        <div className={`flex-1 p-6 overflow-y-auto bg-black custom-scrollbar ${!selected ? 'hidden md:block' : 'block'}`}>
-          {selected ? (
-            <div className="animate-fade-in pb-10">
-              <button onClick={() => setSelected(null)} className="md:hidden mb-6 text-xs flex items-center gap-1 text-green-600 border border-green-800 px-3 py-2 rounded hover:text-green-400">
-                <ArrowLeft size={12}/> BACK TO INBOX
-              </button>
-              
-              <div className="border border-green-800 bg-green-900/10 p-4 mb-6">
-                <div className="grid grid-cols-[50px_1fr] gap-2 text-xs md:text-sm">
-                  <div className="text-green-700">FROM:</div>
-                  <div className="text-green-300">{selected.from}</div>
-                  
-                  <div className="text-green-700">TO:</div>
-                  <div className="text-green-300">{selected.to}</div>
-                  
-                  <div className="text-green-700">DATE:</div>
-                  <div className="text-green-300">{selected.date}</div>
-                </div>
-                <div className="text-base md:text-lg font-bold text-green-400 mt-4 border-t border-green-800 pt-4">
-                  {selected.subject}
-                </div>
-              </div>
-
-              <div className="text-green-400 whitespace-pre-wrap font-mono leading-relaxed text-sm md:text-base pl-2 border-l border-green-900">
-                {selected.body}
-              </div>
-            </div>
-          ) : (
-            <div className="h-full flex flex-col items-center justify-center text-green-800 gap-4">
-              <Mail size={48} className="opacity-20"/>
-              <span className="text-sm tracking-widest uppercase">Select a message to read</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- MAP APP ---
-const RoomDetailModal = ({ roomKey, data, onClose }) => {
-  if (!data) return null;
-  return (
-    <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
-      <div className="border-2 border-green-500 bg-black w-full max-w-lg p-6 shadow-[0_0_50px_rgba(74,222,128,0.2)]">
-        <div className="flex justify-between items-start mb-6 border-b border-green-700 pb-4">
-          <div>
-            <div className="text-[10px] text-green-600 uppercase tracking-widest mb-1">Sector Diagnostic</div>
-            <h2 className="text-2xl font-bold text-green-300 uppercase">{roomKey.replace(/_/g, ' ')}</h2>
-          </div>
-          <button onClick={onClose} className="text-green-500 hover:text-green-100"><X size={24} /></button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-green-900/10 p-3 border border-green-800">
-            <div className="text-[10px] text-green-600 uppercase mb-1">System Status</div>
-            <div className={`font-bold text-lg ${data.status === 'CRITICAL' || data.status === 'WARNING' || data.status === 'BREACH' ? 'text-red-500 animate-pulse' : 'text-green-400'}`}>
-              {data.status}
-            </div>
-          </div>
-          <div className="bg-green-900/10 p-3 border border-green-800">
-             <div className="text-[10px] text-green-600 uppercase mb-1">Structural Integrity</div>
-             <div className="text-green-400 font-bold text-lg">{data.integrity}</div>
-          </div>
-          <div className="bg-green-900/10 p-3 border border-green-800">
-             <div className="text-[10px] text-green-600 uppercase mb-1">Power Draw</div>
-             <div className="text-green-400 font-bold text-lg">{data.power}</div>
-          </div>
-          <div className="bg-green-900/10 p-3 border border-green-800">
-             <div className="text-[10px] text-green-600 uppercase mb-1">Ambient Temp</div>
-             <div className="text-green-400 font-bold text-lg">{data.temp}</div>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2 border-b border-green-900 pb-1">
-             <span className="text-xs text-green-600">DEPARTMENT HEAD</span>
-             <span className="text-xs text-green-300 font-bold">{data.staff}</span>
-          </div>
-          <div className="relative">
-             <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50"></div>
-             <div className="bg-green-900/20 p-4 ml-2 text-xs text-green-400 font-mono leading-relaxed italic">
-               "{data.log}"
-             </div>
-          </div>
-        </div>
-
-        <button onClick={onClose} className="w-full bg-green-900 hover:bg-green-800 text-green-100 py-3 font-bold text-xs uppercase tracking-widest border border-green-700 hover:border-green-500 transition-all">
-          ACKNOWLEDGE ALERT
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const MapRoom = ({ name, id, restricted, status, size = "normal", onClick }) => (
-  <button
-    onClick={() => onClick(id)}
-    className={`
-      border p-3 relative group overflow-hidden transition-all min-h-[80px] flex flex-col justify-between text-left
-      ${size === 'large' ? 'col-span-2' : 'col-span-1'}
-      ${restricted 
-        ? 'border-red-900/50 bg-red-900/5 hover:bg-red-900/20 hover:border-red-500' 
-        : 'border-green-800/50 bg-green-900/5 hover:bg-green-900/20 hover:border-green-500'
-      }
-    `}
-  >
-    {/* Scanline effect on hover */}
-    <div className="absolute inset-0 bg-green-500/10 -translate-y-full group-hover:translate-y-full transition-transform duration-1000 pointer-events-none"></div>
-
-    <div className={`text-xs md:text-sm font-bold flex justify-between w-full ${restricted ? 'text-red-500' : 'text-green-400'}`}>
-      <span>{name}</span>
-      {restricted && <Lock size={12} />}
-    </div>
-    
-    <div className="text-[9px] md:text-[10px] text-green-700 font-mono flex items-center gap-2 w-full mt-2">
-      <div className={`w-2 h-2 rounded-full ${status === 'CRITICAL' || status === 'BREACH' ? 'bg-red-500 animate-ping' : (restricted ? 'bg-red-900' : 'bg-green-500')}`}></div>
-      <span className="truncate">{status}</span>
-    </div>
-  </button>
-);
-
-const MapLevel = ({ depth, name, children, warning }) => (
-  <div className="flex gap-4 relative pl-8 pb-10">
-    <div className="absolute left-0 top-0 bottom-0 w-6 border-r border-dashed border-green-800/50 flex flex-col items-center py-2">
-      <div className="w-2 h-2 bg-green-800 rounded-full mb-2"></div>
-      <span className="text-[9px] text-green-800 -rotate-90 whitespace-nowrap mt-12 origin-center tracking-widest">{depth}</span>
-    </div>
-    
-    <div className="flex-1">
-      <div className="flex items-center gap-3 mb-3">
-        <h3 className="text-sm font-bold text-green-600 border-b border-green-900 inline-block px-2">{name}</h3>
-        {warning && <span className="text-[10px] text-red-500 animate-pulse font-bold px-2 border border-red-900 bg-red-900/10">{warning}</span>}
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {children}
-      </div>
-    </div>
-  </div>
-);
-
-const MapApp = ({ onClose }) => {
-  const [selectedRoom, setSelectedRoom] = useState(null);
-
-  return (
-    <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] relative font-mono">
-      <WindowHeader icon={MapIcon} title="VAULT BLUEPRINT v3.0" onClose={onClose} />
-      
-      {selectedRoom && (
-        <RoomDetailModal 
-          roomKey={selectedRoom} 
-          data={ROOM_DATA[selectedRoom]} 
-          onClose={() => setSelectedRoom(null)} 
-        />
-      )}
-
-      {/* Blueprint Grid Background */}
-      <div className="flex-1 overflow-auto p-6 md:p-8 bg-[linear-gradient(rgba(0,50,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,50,0,0.1)_1px,transparent_1px)] bg-[size:20px_20px] custom-scrollbar relative">
         
-        {/* Surface - Level 0 */}
-        <div className="mb-6 relative">
-          <div className="flex justify-center mb-2">
-            <div className="border border-red-900 bg-red-900/10 text-red-500 px-6 py-2 text-xs font-bold tracking-widest animate-pulse">
-              SURFACE // ZONE RED // RADIATION CRITICAL
-            </div>
-          </div>
-          <div className="h-8 w-px bg-gradient-to-b from-red-900 to-green-800 mx-auto"></div>
-           <MapLevel depth="L0 SURFACE" name="AIRLOCK ACCESS" warning="HAZARD">
-             <MapRoom name="BLAST DOORS" id="AIRLOCK" status="SEALED" size="large" onClick={setSelectedRoom} />
-             <MapRoom name="DECON" id="DECON" status="OFFLINE" onClick={() => {}} />
-             <MapRoom name="OBSERVATORY" id="OBS" status="CRACKED" restricted onClick={() => {}} />
-           </MapLevel>
-        </div>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #001100; border-left: 1px solid #003300; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #005500; border: 1px solid #002200; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #007700; }
 
-        {/* Level 1 */}
-        <MapLevel depth="L1 -50m" name="ADMINISTRATION">
-          <MapRoom name="ELEVATOR A" id="ELV_A" status="ACTIVE" onClick={() => {}} />
-          <MapRoom name="SECURITY HQ" id="SECURITY" status="ACTIVE" onClick={setSelectedRoom} />
-          <MapRoom name="OVERSEER" id="OVERSEER" status="OCCUPIED" restricted onClick={setSelectedRoom} />
-          <MapRoom name="ARCHIVES" id="ARCHIVES" status="LOCKED" onClick={() => {}} />
-        </MapLevel>
-
-        {/* Level 2 */}
-        <MapLevel depth="L2 -100m" name="HABITATION">
-          <MapRoom name="RESIDENTIAL A" id="RES_A" status="98% CAP" size="large" onClick={() => {}} />
-          <MapRoom name="RESIDENTIAL B" id="RES_B" status="100% CAP" size="large" onClick={() => {}} />
-          <MapRoom name="CAFETERIA" id="CAFETERIA" status="OPEN" onClick={() => {}} />
-          <MapRoom name="ATRIUM" id="ATRIUM" status="LIGHTS ON" onClick={() => {}} />
-        </MapLevel>
-
-        {/* Level 3 */}
-        <MapLevel depth="L3 -200m" name="OPS">
-          <MapRoom name="HYDROPONICS" id="HYDROPONICS" status="YIELD LOW" onClick={setSelectedRoom} />
-          <MapRoom name="MEDICAL" id="MEDICAL" status="BUSY" onClick={setSelectedRoom} />
-          <MapRoom name="WATER PURIFICATION" id="WATER_PURIFICATION" status="OPTIMAL" size="large" onClick={setSelectedRoom} />
-        </MapLevel>
-
-        {/* Level 4 */}
-        <MapLevel depth="L4 -400m" name="ENGINEERING">
-          <MapRoom name="REACTOR CORE" id="REACTOR" status="98.4%" size="large" onClick={setSelectedRoom} />
-          <MapRoom name="WORKSHOP" id="WORKSHOP" status="ACTIVE" onClick={() => {}} />
-          <MapRoom name="STORAGE A" id="STORAGE" status="LOCKED" onClick={() => {}} />
-        </MapLevel>
-
-        {/* Level 5 - NEW */}
-        <MapLevel depth="L5 -550m" name="GEOTHERMAL & STORAGE">
-          <MapRoom name="GEOTHERMAL TAP" id="GEO_TAP" status="ONLINE" size="large" onClick={setSelectedRoom} />
-          <MapRoom name="STORAGE B" id="STORAGE_B" status="LOCKED" onClick={setSelectedRoom} />
-          <MapRoom name="INCINERATOR" id="INCIN" status="ACTIVE" onClick={() => {}} />
-        </MapLevel>
-
-        {/* Level 6 - MOVED DOWN */}
-        <MapLevel depth="L6 -700m" name="THE ARK">
-          <MapRoom name="CRYO-BAY" id="CRYO-BAY" status="STASIS LOCK" restricted size="large" onClick={setSelectedRoom} />
-          <MapRoom name="SERVER FARM" id="SERVERS" status="OFFLINE" onClick={() => {}} />
-          <MapRoom name="BACKUP GEN" id="GEN_B" status="STANDBY" onClick={() => {}} />
-        </MapLevel>
-
-        {/* Level 7 - BLACK SITE */}
-         <MapLevel depth="L7 -900m" name="R&D [BLACK SITE]" warning="CLASSIFIED">
-          <MapRoom name="LAB ALPHA" id="LAB_ALPHA" status="SEALED" restricted size="large" onClick={setSelectedRoom} />
-          <MapRoom name="SPECIMEN CONT." id="SPECIMEN_CONT" status="BREACH" restricted onClick={setSelectedRoom} />
-        </MapLevel>
-
-      </div>
-      
-      <div className="p-3 border-t border-green-800 text-[10px] text-green-600 flex justify-between px-6 shrink-0 bg-green-900/10">
-        <span>STRUCTURAL INTEGRITY: 96%</span>
-        <span>SEALED: 198 YEARS, 4 DAYS</span>
-      </div>
-    </div>
-  );
-};
-
-// --- STATUS APP ---
-const StatusApp = ({ onClose }) => (
-  <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
-    <WindowHeader icon={Activity} title="SYSTEM MONITOR" onClose={onClose} />
-    
-    <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
-      
-      {/* Reactor */}
-      <div className="border border-green-600 p-4 bg-green-900/5 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-2 opacity-50"><Zap size={20}/></div>
-        <h3 className="text-green-300 font-bold mb-4 flex items-center gap-2 text-sm md:text-base">REACTOR OUTPUT</h3>
-        <div className="h-6 w-full bg-green-900/50 mb-2 border border-green-800 p-1">
-          <div className="h-full bg-green-500 w-[98%] animate-pulse relative">
-             <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 animate-ping"></div>
-          </div>
-        </div>
-        <div className="text-right text-xs text-green-400 font-bold mb-4">4.2 GW (98.4% NOMINAL)</div>
-        
-        <div className="mt-4 space-y-2 font-mono">
-          <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
-             <span>COOLANT PUMP A</span> <span className="text-green-400">OK</span>
-          </div>
-          <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
-             <span>COOLANT PUMP B</span> <span className="text-yellow-500 animate-pulse font-bold">VIBRATION</span>
-          </div>
-          <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
-             <span>TURBINE</span> <span className="text-green-400">OK</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Life Support */}
-      <div className="border border-green-600 p-4 bg-green-900/5">
-        <h3 className="text-green-300 font-bold mb-4 flex items-center gap-2 text-sm md:text-base"><Wind size={16}/> ATMOSPHERICS</h3>
-        <div className="flex justify-between items-end h-24 gap-3 mb-2">
-           <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
-              <div className="absolute bottom-0 w-full bg-green-500 h-[80%] transition-all group-hover:bg-green-400"></div>
-              <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">O2</span>
-           </div>
-           <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
-              <div className="absolute bottom-0 w-full bg-green-500 h-[82%] transition-all group-hover:bg-green-400"></div>
-              <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">N2</span>
-           </div>
-           <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
-              <div className="absolute bottom-0 w-full bg-green-500 h-[79%] transition-all group-hover:bg-green-400"></div>
-              <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">CO2</span>
-           </div>
-           <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
-              <div className="absolute bottom-0 w-full bg-blue-500 h-[45%] transition-all group-hover:bg-blue-400"></div>
-              <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">H2O</span>
-           </div>
-        </div>
-        <div className="text-center text-xs text-green-400 tracking-wider">RECYCLERS OPERATING AT 89%</div>
-      </div>
-      
-      {/* Surface Sensors */}
-      <div className="border border-red-900 p-4 col-span-1 md:col-span-2 bg-red-900/10 relative">
-        <div className="absolute top-2 right-2 animate-pulse text-red-500"><Radio size={20} /></div>
-        <h3 className="text-red-400 font-bold mb-4 flex items-center gap-2 text-sm md:text-base">EXTERNAL SENSOR ARRAY</h3>
-        
-        {/* Seismic / Waveform Visualization */}
-        <div className="relative h-24 mb-4 border border-red-900/30 bg-black overflow-hidden">
-           {/* Grid */}
-           <div className="absolute inset-0 bg-[linear-gradient(transparent_9px,rgba(255,0,0,0.1)_10px),linear-gradient(90deg,transparent_9px,rgba(255,0,0,0.1)_10px)] bg-[size:10px_10px]"></div>
-           
-           {/* Signal Line */}
-           <div className="flex items-end h-full gap-1 absolute bottom-0 left-0 right-0 px-2 pb-2">
-             {[...Array(50)].map((_, i) => (
-               <div 
-                 key={i} 
-                 className="flex-1 bg-red-500 transition-all duration-100 ease-in-out"
-                 style={{
-                   height: `${Math.random() > 0.8 ? Math.random() * 90 : Math.random() * 20}%`,
-                   opacity: 0.8
-                 }}
-               ></div>
-             ))}
-           </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-xs">
-           <div className="p-3 border border-green-900 bg-green-900/5">
-             <div className="text-green-700 mb-1">SEISMIC</div>
-             <div className="text-yellow-500 font-bold animate-pulse">DETECTED</div>
-           </div>
-           <div className="p-3 border border-green-900 bg-green-900/5">
-             <div className="text-green-700 mb-1">AUDIO</div>
-             <div className="text-green-400 font-bold">1400kHz</div>
-           </div>
-           <div className="p-3 border border-green-900 bg-green-900/5">
-             <div className="text-green-700 mb-1">THERMAL</div>
-             <div className="text-green-400 font-bold">NORMAL</div>
-           </div>
-           <div className="p-3 border border-red-900 bg-red-900/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-             <div className="text-red-700 mb-1">RADIATION</div>
-             <div className="text-red-500 font-bold animate-pulse">CRITICAL</div>
-           </div>
-        </div>
-        <div className="mt-4 text-[10px] text-red-400 font-mono border-t border-red-900/30 pt-2">
-          ALERT: Unidentified high-frequency signal detected on Channel 9. Source triangulated: North-East (D.C. Ruins).
-        </div>
-      </div>
-
-    </div>
-  </div>
-);
-
-const DesktopIcon = ({ label, icon: Icon, onClick }) => (
-  <button
-    onClick={onClick}
-    className="flex flex-col items-center justify-center gap-2 p-2 rounded hover:bg-green-900/20 active:bg-green-900/40 group w-24 md:w-28 transition-all duration-200"
-  >
-    <div className="text-green-500 group-hover:text-green-300 group-hover:scale-110 transition-transform bg-black/40 p-3 rounded-xl border border-transparent group-hover:border-green-500/30 group-hover:shadow-[0_0_15px_rgba(74,222,128,0.2)] relative">
-      <Icon size={32} className="md:w-10 md:h-10" strokeWidth={1.5} />
-      {/* Corner accents */}
-      <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-green-500/0 group-hover:border-green-500/50 transition-all"></div>
-      <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-green-500/0 group-hover:border-green-500/50 transition-all"></div>
-    </div>
-    <span className="text-[10px] md:text-xs font-bold text-green-600 group-hover:text-green-300 bg-black/60 px-2 py-1 rounded w-full text-center truncate border border-transparent group-hover:border-green-900/50 tracking-wide">
-      {label}
-    </span>
-  </button>
-);
-
-const MainInterface = () => {
-  const [activeApp, setActiveApp] = useState(null); 
-  const [showNote, setShowNote] = useState(false);
-  const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="h-full flex flex-col relative font-mono">
-      {/* Background Logo */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
-        <div className="w-64 h-64 md:w-96 md:h-96 border-[20px] border-green-500 rounded-full flex items-center justify-center">
-           <div className="text-[150px] md:text-[250px] font-bold text-green-500 tracking-tighter">V</div>
-        </div>
-      </div>
-
-      {/* Desktop Area */}
-      <div className="flex-1 p-6 md:p-10 flex content-start flex-wrap gap-4 md:gap-8 relative z-10 overflow-y-auto">
-        <DesktopIcon label="TERMINAL" icon={Terminal} onClick={() => setActiveApp('terminal')} />
-        <DesktopIcon label="MAIL" icon={Mail} onClick={() => setActiveApp('mail')} />
-        <DesktopIcon label="BLUEPRINT" icon={MapIcon} onClick={() => setActiveApp('map')} />
-        <DesktopIcon label="SENSORS" icon={Activity} onClick={() => setActiveApp('status')} />
-        <DesktopIcon label="NETWORK" icon={Wifi} onClick={() => {}} />
-        <DesktopIcon label="DATABASE" icon={Database} onClick={() => {}} />
-
-        {/* Sticky Note */}
-        <div 
-          onClick={() => setShowNote(!showNote)}
-          className={`
-            absolute bottom-20 right-8 md:bottom-24 md:right-12
-            bg-[#fef9c3] text-black p-4 w-48 md:w-56
-            rotate-2 shadow-lg cursor-pointer transition-all duration-300 ease-out transform
-            ${showNote ? 'scale-110 z-50 rotate-0 opacity-100 shadow-2xl translate-y-[-20px]' : 'opacity-90 hover:opacity-100 hover:scale-105 hover:rotate-1'}
-          `}
-        >
-          {/* Tape Effect */}
-          <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/40 rotate-1 shadow-sm"></div>
-
-          <div className="text-[10px] border-b border-black/20 mb-2 pb-1 font-bold flex justify-between uppercase tracking-wider text-neutral-800">
-             <span>URGENT</span>
-             {showNote && <X size={12}/>}
-          </div>
-          <div className="font-handwriting text-sm leading-relaxed select-none text-neutral-900">
-            Don't forget the Override Key for the Black Site logs: <br/>
-            <span className="font-mono bg-yellow-200/50 px-1 mt-2 mb-2 inline-block font-bold border-b border-black/20 text-base">
-              {ADMIN_PASSWORD}
-            </span>
-            <br/>
-            Burn this note after memorizing.
-            <br/>
-            <span className="block text-right mt-2 font-bold">- Drake</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Taskbar */}
-      <div className="h-10 md:h-12 border-t-2 border-green-700 bg-green-900/20 flex items-center px-4 justify-between z-20 shrink-0 backdrop-blur-sm">
-        <div className="flex items-center gap-4">
-          <button className="bg-green-700 text-black px-4 py-1 font-bold text-xs md:text-sm hover:bg-green-500 hover:shadow-[0_0_10px_rgba(74,222,128,0.5)] flex items-center gap-2 transition-all">
-             <Menu size={14} /> START
-          </button>
-          <div className="h-6 w-px bg-green-800"></div>
-          {activeApp && (
-            <div className="px-4 py-1 bg-green-900/40 border border-green-600 text-green-300 text-[10px] md:text-xs font-bold uppercase shadow-[0_0_10px_rgba(74,222,128,0.2)] flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              {activeApp}
-            </div>
-          )}
-        </div>
-        <div className="text-[10px] md:text-xs text-green-600 font-mono flex items-center gap-4">
-           <div className="hidden md:flex items-center gap-2">
-             <Shield size={12}/> <span className="opacity-70">DEFCON 4</span>
-           </div>
-           <div className="hidden md:flex items-center gap-2">
-             <Battery size={12}/> <span className="opacity-70">PWR 98%</span>
-           </div>
-           <span className="text-green-400 font-bold border-l border-green-800 pl-4">{CURRENT_DATE}</span>
-           <span className="text-green-400 font-bold">{time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-        </div>
-      </div>
-
-      {/* App Windows */}
-      {activeApp && (
-        <div className="absolute inset-0 md:inset-8 z-40 p-2 md:p-0 bg-black/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none animate-fade-in">
-          {activeApp === 'terminal' && <TerminalApp onClose={() => setActiveApp(null)} />}
-          {activeApp === 'mail' && <MailApp onClose={() => setActiveApp(null)} />}
-          {activeApp === 'map' && <MapApp onClose={() => setActiveApp(null)} />}
-          {activeApp === 'status' && <StatusApp onClose={() => setActiveApp(null)} />}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default function App() {
-  const [booted, setBooted] = useState(false);
-  const [crtOn, setCrtOn] = useState(false);
-
-  useEffect(() => {
-    setTimeout(() => setCrtOn(true), 100);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-[#050505] text-green-500 font-mono overflow-hidden selection:bg-green-500 selection:text-black cursor-default touch-none">
-      
-      {/* CRT Visual Layer */}
-      <CRTOverlay />
-
-      <div className={`h-full w-full p-2 md:p-10 transition-all duration-1000 ease-out ${crtOn ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-        
-        {/* Monitor Frame */}
-        <div className="h-full w-full border-[4px] md:border-[20px] border-[#222] rounded-lg md:rounded-[3rem] bg-[#111] relative shadow-[0_0_0_2px_#333,0_0_100px_rgba(0,20,0,0.5)] overflow-hidden flex flex-col box-border">
-          
-          {/* Screen Glass Reflection */}
-          <div className="absolute top-0 right-0 w-[60%] h-[40%] bg-gradient-to-bl from-white/5 via-white/[0.02] to-transparent rounded-tr-[2rem] pointer-events-none z-50"></div>
-          
-          {/* Inner Bezel Shadow */}
-          <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_20px_rgba(0,0,0,1)] z-40 rounded-lg md:rounded-[2rem]"></div>
-
-          {/* Screen Content */}
-          <div className="flex-1 overflow-hidden bg-[#0a0a0a] text-shadow-glow relative z-10">
-            {!booted ? (
-              <BootSequence onComplete={() => setBooted(true)} />
-            ) : (
-              <MainInterface />
-            )}
-          </div>
-        </div>
-      </div>
-
-      <style jsx global>{`
         /* Animations */
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .animate-blink { animation: blink 1s step-end infinite; }
@@ -1113,16 +48,1144 @@ export default function App() {
         @keyframes fade-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         .animate-fade-in { animation: fade-in 0.2s ease-out forwards; }
 
-        /* Styles */
         .text-shadow-glow { text-shadow: 0 0 4px rgba(74, 222, 128, 0.5), 0 0 10px rgba(74, 222, 128, 0.3); }
         .font-handwriting { font-family: 'Courier New', Courier, monospace; letter-spacing: -0.5px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-        /* Custom Scrollbar */
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #001100; border-left: 1px solid #003300; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #005500; border: 1px solid #002200; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #007700; }
-      `}</style>
-    </div>
-  );
-}
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // SAFETY CHECK: Ensure lucideReact loaded, fallback to empty object to prevent crash if CDN fails
+        const lucideIcons = window.lucideReact || {};
+
+        // Destructure icons from the global lucideReact object
+        // Using a fallback component for missing icons
+        const MissingIcon = () => <span style={{fontSize: '10px'}}>?</span>;
+        
+        const {
+            Terminal = MissingIcon, 
+            Shield = MissingIcon, 
+            Users = MissingIcon, 
+            AlertTriangle = MissingIcon, 
+            Lock = MissingIcon,
+            ArrowLeft = MissingIcon, 
+            Folder = MissingIcon, 
+            FileText = MissingIcon, 
+            X = MissingIcon, 
+            Mail = MissingIcon, 
+            Map: MapIcon = MissingIcon, // Aliased to avoid collision with JS Map
+            Activity = MissingIcon, 
+            Cpu = MissingIcon, 
+            Radio = MissingIcon, 
+            Crosshair = MissingIcon, 
+            Menu = MissingIcon, 
+            Zap = MissingIcon, 
+            Fingerprint = MissingIcon, 
+            Eye = MissingIcon,
+            Skull = MissingIcon, 
+            FileWarning = MissingIcon, 
+            Search = MissingIcon, 
+            Thermometer = MissingIcon, 
+            Droplet = MissingIcon, 
+            Wind = MissingIcon,
+            Database = MissingIcon, 
+            Wifi = MissingIcon, 
+            Battery = MissingIcon, 
+            Anchor = MissingIcon, 
+            Layers = MissingIcon, 
+            FileCode = MissingIcon
+        } = lucideIcons;
+
+        /* --------------------------------------------------------------------------------
+          LORE DATABASE: VAULT 254 (ULTIMATE EDITION - v3.0 BLUEPRINT UPDATE)
+          --------------------------------------------------------------------------------
+        */
+
+        const CURRENT_DATE = "23.10.2275";
+        const ADMIN_PASSWORD = "ADMIN_KEY"; 
+
+        // --- DIAGNOSTIC DATA FOR MAP (EXPANDED TO 7 LEVELS) ---
+        const ROOM_DATA = {
+          // L0 - SURFACE
+          "AIRLOCK": {
+            status: "SEALED",
+            integrity: "99.9%",
+            power: "-0.1 GW",
+            temp: "270K",
+            staff: "Auto-Turrets",
+            log: "External radiation levels: 450 rads/sec. Atmospheric toxicity: Lethal. Door seal holding. Scratches detected on outer hull."
+          },
+
+          // L1 - ADMIN
+          "SECURITY": {
+            status: "ACTIVE",
+            integrity: "100%",
+            power: "-0.1 GW",
+            temp: "293K",
+            staff: "Chief Drake",
+            log: "Platoon Alpha reports 'Phantom Knocking' on the Blast Door again. Sensors confirm zero contact. Morale is fraying."
+          },
+          "OVERSEER": {
+            status: "LOCKED",
+            integrity: "100%",
+            power: "-0.05 GW",
+            temp: "294K",
+            staff: "Overseer Caldwell",
+            log: "Override enabled. External comms array is picking up patterns that match Pre-War Enclave ciphers. I cannot let the council know."
+          },
+          
+          // L3 - OPS
+          "HYDROPONICS": {
+            status: "CRITICAL",
+            integrity: "85%",
+            power: "-0.4 GW",
+            temp: "295K",
+            staff: "Dir. Ashford",
+            log: "Soy crop yield down 14%. Genetic drift detected in corn strains. We need new seeds, or we face starvation in 5 years."
+          },
+          "MEDICAL": {
+            status: "BUSY",
+            integrity: "92%",
+            power: "-0.2 GW",
+            temp: "294K",
+            staff: "Dr. Morrison",
+            log: "Treating 15 new cases of 'Vault Fever' (Acute Claustrophobia). Patient 44 tried to dig through the cafeteria wall with a spoon."
+          },
+          "WATER_PURIFICATION": {
+            status: "STABLE",
+            integrity: "99%",
+            power: "-0.3 GW",
+            temp: "288K",
+            staff: "Auto-Sys",
+            log: "Filtration chip operating at 99.9% efficiency. We have only ONE spare chip left. God help us if it breaks."
+          },
+
+          // L4 - ENG
+          "REACTOR": {
+            status: "WARNING",
+            integrity: "98.4%",
+            power: "4.2 GW",
+            temp: "450K",
+            staff: "Chief Eng. Volkova",
+            log: "Turbine B vibration increasing. We are using scrap metal shims to keep the bearing stable. It's a temporary fix for a permanent problem."
+          },
+
+          // L5 - GEOTHERMAL (NEW)
+          "GEO_TAP": {
+            status: "ONLINE",
+            integrity: "88%",
+            power: "+1.2 GW",
+            temp: "850K",
+            staff: "Auto-Sys",
+            log: "Magma pressure stabilizing. Heat exchange valves are calcified. Efficiency down 12%. Warning: Seismic activity affecting intake pipes."
+          },
+          "STORAGE_B": {
+            status: "LOCKED",
+            integrity: "95%",
+            power: "MINIMAL",
+            temp: "290K",
+            staff: "Quartermaster",
+            log: "Manifest Check: 500 crates of Nuka-Cola (Flat), 200 crates of Fancy Lads Snack Cakes (Preserved). We are running low on spare servos for the T-45s."
+          },
+
+          // L6 - THE ARK (MOVED DOWN)
+          "CRYO-BAY": {
+            status: "LOCKED",
+            integrity: "100%",
+            power: "-1.2 GW (High Draw)",
+            temp: "70K",
+            staff: "AUTOMATED",
+            log: "Pod 089 power fluctuation. Neural activity in Executive Subject suggests REM sleep nightmare cycle. Do not thaw."
+          },
+
+          // L7 - BLACK SITE
+          "LAB_ALPHA": {
+            status: "SEALED",
+            integrity: "45%",
+            power: "OFFLINE",
+            temp: "250K",
+            staff: "UNKNOWN",
+            log: "Sector sealed since 2090. Containment breach protocols active. Do not enter without hazmat clearance."
+          },
+          "SPECIMEN_CONT": {
+            status: "CRITICAL",
+            integrity: "12%",
+            power: "ERR",
+            temp: "ERR",
+            staff: "NONE",
+            log: "Motion sensors detecting movement inside Specimen Tank 4. The tank was supposed to be empty."
+          }
+        };
+
+        const EMAILS = [
+          {
+            id: 'msg_001',
+            from: 'Caldwell, V. (Overseer)',
+            to: 'Council_All',
+            subject: 'MINUTES: Emergency Session 2275.10.22',
+            date: '23.10.2275',
+            body: `TRANSCRIPT SUMMARY:\n\nTOPIC: Surface Expedition Proposal #44\n\nTORRES (Reclamationist): "We are starving by degrees. The crops are failing. We need to open the door."\n\nASHFORD (Preservationist): "The sensors detect high-band radiation and seismic tremors. There is a war up there. If we open the door, we die."\n\nVOLKOVA (Innovator): "I don't care about the war. I need copper. The reactor wiring is 200 years old."\n\nDRAKE (Guard): "If we open the door, my men need heavier weapons. 10mm pistols won't stop what the sensors are hearing."\n\nVERDICT: Proposal DENIED by Overseer Veto. Isolation continues.`
+          },
+          {
+            id: 'msg_002',
+            from: 'Dr. Morrison (Chief Medical)',
+            to: 'Caldwell, V. (Overseer)',
+            subject: 'PSYCH PROFILE: "The Fear"',
+            date: '21.10.2275',
+            body: `Vincent,\n\nI'm seeing a new neurosis in the children. They are drawing the sky, but they draw it as fire. \n\nWe have taught them that the Vault is Safety and the Surface is Hell for so long that they are developing agoraphobia before they even see a door. \n\nIf we ever do open the Vault, half the population might refuse to leave. They are institutionalized. We are breeding a generation of moles.`
+          },
+          {
+            id: 'msg_003',
+            from: 'Comms Officer Wu',
+            to: 'Drake, R. (Security)',
+            subject: 'ANOMALY: The "Patriarch" Signal',
+            date: '19.10.2275',
+            body: `Chief,\n\nI recorded the "Ghost Signal" again. 1400kHz. \n\nIt's a voice. Deep. Authoritative. Talking about "America" and "The Enclave." \n\nAshford says it's a pre-war recording loop. But the voice referenced "The Mutant Threat." Super Mutants didn't exist in 2077, did they? \n\nSomeone is alive up there. And they sound organized.`
+          },
+          {
+            id: 'msg_004',
+            from: 'Unknown Sender',
+            to: 'Volkova (Engineering)',
+            subject: 'RE: The Vibration',
+            date: '18.10.2275',
+            body: `I traced the vibration source. It's not the turbine. It's coming from BELOW Level 5.\n\nThere isn't supposed to be anything below Level 5.\n\nI found a service hatch in the maintenance tunnels painted black. It was warm to the touch.`
+          }
+        ];
+
+        const FILE_SYSTEM = {
+          root: {
+            id: 'root',
+            name: 'MAIN DRIVE',
+            type: 'folder',
+            children: ['mission', 'military', 'admin', 'engineering', 'medical', 'classified', 'black_site']
+          },
+
+          // --- MISSION ---
+          mission: {
+            id: 'mission',
+            name: 'MISSION PROFILE',
+            type: 'folder',
+            children: ['project_ark', 'langston_memo', 'timeline_events']
+          },
+          project_ark: {
+            id: 'project_ark',
+            name: 'PROJECT_OVERVIEW.TXT',
+            type: 'file',
+            content: `SUBJECT: The A.R.C. (Vault 254)\nCLASSIFICATION: V-TEC EYES ONLY\n\nThe Administrative Reclamation Command is a CONTROL VAULT designed to preserve the corporate hierarchy of Vault-Tec.\n\nCORE MANDATE:\n1. SURVIVE the nuclear exchange.\n2. WAIT for the "Great Silence" (estimated 20 years post-war).\n3. AWAKEN the 120 Executives.\n4. RESTRUCTURE the United States under corporate governance.\n\nCURRENT STATUS: CRITICAL FAILURE OF STEP 2.\nThe "Great Silence" never occurred. Sensors indicate the surface is still a warzone.`
+          },
+          langston_memo: {
+            id: 'langston_memo',
+            name: 'LANGSTON_MEMO.LOG',
+            type: 'file',
+            content: `FROM: Frederick Langston, Board of Directors\nDATE: August 14, 2076\n\n"We are the architects of the future."\n\nLet the politicians in Washington burn. Let the generals play with their toys until they break them. When the smoke clears, the world will need Management. It will need Structure. It will need Us.\n\nWe will sleep through the chaos. And when we wake, we will not be rebuilding a democracy. We will be building a Department.`
+          },
+          timeline_events: {
+            id: 'timeline_events',
+            name: 'HISTORY_LOG.DAT',
+            type: 'file',
+            content: `[2077.10.23] The Great Seal. 120 Executives frozen. 369 Staff active.\n[2102.05.20] Overseer Caldwell I cancels opening. "Atmosphere toxic."\n[2180.11.02] The "Deep Tremor." A massive seismic event shakes the vault. Believed to be a secondary nuclear detonation nearby, or a massive structural collapse on the surface.\n[2245.03.15] The "Static Age" begins. Comms pick up increased encrypted chatter. We cannot decipher it.\n[2275.10.23] PRESENT DAY. 198 Years of Silence.`
+          },
+
+          // --- MILITARY ---
+          military: {
+            id: 'military',
+            name: 'SECURITY & DEFENSE',
+            type: 'folder',
+            children: ['force_manifest', 'arsenal_count', 'death_spiral', 'simulation_logs', 'surface_threats']
+          },
+          force_manifest: {
+            id: 'force_manifest',
+            name: 'ROSTER_ACTIVE.DB',
+            type: 'file',
+            content: `COMMANDER: Chief Roland Drake\n\nACTIVE FORCE: 120 Personnel\n\nPLATOON ALPHA ("The Wall")\n- Duty: The Great Door\n- Mental State: High paranoia. They stare at the blast door monitors 24/7 waiting for a knock that never comes.\n\nPLATOON BETA ("The Watch")\n- Duty: Internal Order\n- Mental State: Strained. Policing your own cousins and neighbors creates friction.\n\nPLATOON GAMMA ("The Reserve")\n- Duty: Maintenance & Training\n- Mental State: Boredom. Most "accidental discharges" happen in Gamma.`
+          },
+          arsenal_count: {
+            id: 'arsenal_count',
+            name: 'ARMORY_INVENTORY.TXT',
+            type: 'file',
+            content: `WARNING: NON-REPLENISHABLE STOCKPILE\n\nSMALL ARMS:\n- 10mm Pistols (N99): 150 Units\n- R91 Assault Rifles: 200 Units (Wood stocks rotting, replaced with polymer scrap)\n\nHEAVY EQUIPMENT:\n- T-45d Power Armor: 20 Suits\n > Operational: 18\n > Servos Seized: 2\n > Note: These suits are 200 years old. Rubber seals are cracking. Hydraulic fluid leaks are common.\n\nMISSING CAPABILITIES:\n- We have NO indirect fire support (Mortars/Howitzers).\n- We have NO air support.\n- We have NO anti-armor weaponry beyond limited grenades.`
+          },
+          death_spiral: {
+            id: 'death_spiral',
+            name: 'THREAT_ANALYSIS_DEATH_SPIRAL.DOC',
+            type: 'file',
+            content: `STRATEGIC ASSESSMENT: "THE DEATH SPIRAL"\n\nPREMISE: We engage a hostile surface force of unknown capability.\n\nTHE MATH:\nWe cannot build guns. We cannot build bullets (at scale). We cannot build armor.\n\nIf we win a battle but lose 10 Rifles and 2 Soldiers, we have permanently lost 5% of our combat power. \n\nIf the enemy is a "Scavenger Tribe," they can recruit more bodies. We cannot.\nIf the enemy is a "Technological Power," they can manufacture weapons. We cannot.\n\nCONCLUSION:\nVictory is mathematically impossible in a sustained conflict. Our only defense is obscurity. We must never be found.`
+          },
+          simulation_logs: {
+            id: 'simulation_logs',
+            name: 'WAR_GAME_RESULTS.LOG',
+            type: 'file',
+            content: `SIMULATION PARAMETERS: PRE-WAR DATA EXTRAPOLATION\n\nSCENARIO: "Communist Invasion Force"\nRESULT: DEFEAT. (Our T-45s overwhelmed by Hei Gui stealth suits).\n\nSCENARIO: "Civilian Riot (Class 5)"\nRESULT: VICTORY. (Tear gas and crowd control effective).\n\nSCENARIO: "Rogue US Army Remnant"\nRESULT: TOTAL DEFEAT in 14 minutes.\nNOTE: The simulation assumes the Rogue Army possesses T-51b armor and Plasma weaponry. Our ballistic vests offered zero resistance.`
+          },
+          surface_threats: {
+            id: 'surface_threats',
+            name: 'SURFACE_SENSOR_LOGS.DAT',
+            type: 'file',
+            content: `SENSOR ARRAY (PASSIVE MODE ONLY)\n\n[2275.05.12] SEISMIC: Heavy rhythmic vibrations detected directly overhead. Pattern suggests bi-pedal movement but mass exceeds 2,000kg. \nTHEORY: Giant Fauna? Or heavy construction equipment? \n\n[2275.08.14] ACOUSTIC: High-pitch turbine whine detected. Moving fast. Doppler shift indicates supersonic flight.\nTHEORY: Pre-war aircraft? It sounded too clean to be a scavenger jury-rig. Who is flying jets 200 years later?\n\n[2275.10.01] RADIATION: Spike in background Rads. Wind patterns suggest a source from the D.C. Ruins. \nTHEORY: Did another bomb go off?`
+          },
+
+          // --- ADMIN ---
+          admin: {
+            id: 'admin',
+            name: 'ADMINISTRATION',
+            type: 'folder',
+            children: ['factions', 'census', 'goat_results', 'contraband_list']
+          },
+          factions: {
+            id: 'factions',
+            name: 'POLITICAL_LANDSCAPE.DOC',
+            type: 'file',
+            content: `INTERNAL FACTION SUMMARY (2275)\n\n1. LOYALISTS (Overseer Caldwell)\n Status Quo. They believe the vault is a Holy Sanctuary. To leave is to die.\n\n2. RECLAMATIONISTS (Torres)\n They believe the Sensors are lying. They think the surface is safe and the Overseer is keeping us here to maintain power.\n\n3. PRESERVATIONISTS (Ashford)\n They have evolved into a near-cult of safety. Some refuse to even look at photos of the surface, calling it "The Hellscape."\n\n4. INNOVATORS (Volkova)\n Frustrated engineers. They are tearing apart non-essential walls just to get copper wire for their unauthorized projects.\n\n5. THE GUARDS (Drake)\n They are restless. A standing army with no enemy eventually finds one within.`
+          },
+          census: {
+            id: 'census',
+            name: 'POPULATION_STATS.DAT',
+            type: 'file',
+            content: `TOTAL POPULATION: 1,000\n- Active: 880\n- Cryo: 120\n\nTHE "GREY DRIFT":\nMedical's slang for our genetic stagnation. We look too much alike. The gene pool is a puddle. \n\nPSYCHOLOGICAL PROFILE:\n- Depression Rate: 45%\n- "Vault Fever" (Claustrophobia): 12%\n- Agoraphobia (Fear of Outside): 85%\n\nMost residents are terrified of the concept of "The Sky." They ask if the blue light burns.`
+          },
+          goat_results: {
+            id: 'goat_results',
+            name: 'RECENT_GOAT_ASSIGNMENTS.TXT',
+            type: 'file',
+            content: `CLASS OF 2275 ASSIGNMENTS:\n\n- Johnson, T. -> Waste Recycler. (Note: Subject requested "Anything but the Reactor," cited fear of radiation leaks).\n\n- Miller, S. -> Security. (Note: Aggressive tendencies. Punched the instructor during the "Grandmother" scenario).\n\n- Vance, A. -> Archives. (Note: Obsessed with pre-war maps. Caught trying to calculate the Vault's exact GPS coordinates).`
+          },
+          contraband_list: {
+            id: 'contraband_list',
+            name: 'CONFISCATED_ITEMS.LOG',
+            type: 'file',
+            content: `SECURITY LOCKER 44 CONTENTS:\n\n1. "Grognak the Barbarian" Comic (Issue #4)\n Reason: Depicts surface violence as "heroic."\n\n2. Home-made Radio Receiver\n Reason: Unauthorized frequency scanning. Confiscated from Engineering Apprentice Wu.\n\n3. "The Sky Book"\n Reason: A child's drawing book filled with pictures of the sun. Deemed "Psychologically Destabilizing" by the Preservationists.`
+          },
+
+          // --- MEDICAL ---
+          medical: {
+            id: 'medical',
+            name: 'MEDICAL DEPT',
+            type: 'folder',
+            children: ['grey_drift_report', 'psych_evals', 'supply_status', 'pod_089_dreams']
+          },
+          grey_drift_report: {
+            id: 'grey_drift_report',
+            name: 'GENETIC_STAGNATION.DOC',
+            type: 'file',
+            content: `SUBJECT: THE GREY DRIFT\n\nWe are seeing a 14% increase in recessive traits in the latest generation. Immune systems are failing against common mold spores that were harmless 50 years ago.\n\nThe population is biologically bored. DNA requires competition and variety. We have neither. If we do not introduce external genetic material (i.e., surface survivors) within 60 years, we risk a cascade failure of viable births.`
+          },
+          psych_evals: {
+            id: 'psych_evals',
+            name: 'VAULT_FEVER_TRACKER.TXT',
+            type: 'file',
+            content: `*** EPIDEMIC ALERT: VAULT FEVER ***\n\nSymptoms: Acute Claustrophobia, Irrational Anger, Hallucinations of "Open Space".\n\nCASE LOG:\n- Patient 104 (Age 19): Reports hearing voices in the ventilation shafts. Diagnosis: Sensory deprivation hallucination.\n- Patient 44 (Age 45): Refuses to eat Hydroponic Corn. Claims it "tastes like grey." Attempted to dig through cafeteria wall with a spoon.\n- Patient 09 (Security): Recurring nightmare about the blast door opening and "the fire coming in." Diagnosis: Acute Agoraphobia.`
+          },
+          pod_089_dreams: {
+            id: 'pod_089_dreams',
+            name: 'POD_089_NEURAL_DUMP.RAW',
+            type: 'file',
+            content: `SUBJECT: EXECUTIVE X-4\nSTATUS: FROZEN\n\nNEURAL INTERFACE LOG:\n[ERROR: Buffer Overflow]\nSubject is dreaming. But the dreams are synchronous with external radio waves. \n\nCONTENT ANALYSIS:\n- Images of a "Oil Rig" in the ocean.\n- Repeated phrase: "The Enclave returns."\n- Visions of armored soldiers burning a village.\n\nHYPOTHESIS: The Cryo-Pod's neural link is acting as an antenna. The subject isn't dreaming; they are receiving.`
+          },
+
+          // --- ENGINEERING ---
+          engineering: {
+            id: 'engineering',
+            name: 'ENGINEERING DEPT',
+            type: 'folder',
+            children: ['reactor_status', 'water_chip', 'maintenance_schedule']
+          },
+          reactor_status: {
+            id: 'reactor_status',
+            name: 'REACTOR_DIAGNOSTICS.LOG',
+            type: 'file',
+            content: `SYSTEM: General Atomics V-Series\nSTATUS: ONLINE (DEGRADED)\n\nTHE VIBRATION:\nThe primary turbine has a wobble. It started in 2260. It's getting worse. We call it "The Heartbeat." You can feel it in the floor on Level 4.\n\nWe don't have the bearings to fix it. If we shut it down to overhaul it, we lose power to Cryo. If we lose power to Cryo, the Executives die. If the Executives die, the mission ends.\n\nSo we let it wobble.`
+          },
+          water_chip: {
+            id: 'water_chip',
+            name: 'WATER_PURIFICATION.SYS',
+            type: 'file',
+            content: `COMPONENT: Water Chip (Model 2077-B)\nSTATUS: FUNCTIONAL\n\nWe are using the last spare. The original failed in 2150. The first spare cracked in 2210. This is it. \n\nWe are filtering urine, sweat, and reactor runoff through a chip that is 198 years old. If this chip breaks, we have to open the door to find water. And if we open the door, the Preservationists might riot.`
+          },
+
+          // --- CLASSIFIED ---
+          classified: {
+            id: 'classified',
+            name: 'RESTRICTED AREA',
+            type: 'folder',
+            locked: true,
+            children: ['executive_manifest', 'wakeup_protocol', 'overseer_journal']
+          },
+          executive_manifest: {
+            id: 'executive_manifest',
+            name: 'EXECUTIVE_BOARD_LIST.ENC',
+            type: 'file',
+            content: `*** EYES ONLY ***\n\nCRYO-POD 001: Frederick Langston (Board Member)\nCRYO-POD 002: Leonard Vance (CEO)\nCRYO-POD 003: Sarah Halloway (Director)\nCRYO-POD 004: Marcus Thorne (VP Ops)\nCRYO-POD 005: [CORRUPTED DATA]\n...\nCRYO-POD 120: S. Calvin\n\nNOTE: Pod 089 is showing fluctuating power levels. The occupant may be suffering from "Freezer Burn" (Neural decay). Do not thaw unless necessary.`
+          },
+          wakeup_protocol: {
+            id: 'wakeup_protocol',
+            name: 'RECLAMATION_DAY.EXE',
+            type: 'file',
+            content: `PROTOCOL 77-RECLAIM\n\nStep 1: Unseal Blast Doors.\nStep 2: Establish perimeter.\nStep 3: Initiate Thaw Cycle (12 Hours).\n\nWARNING: We have never tested the thawing process. Pre-war estimates suggested a 15% lethality rate. We might wake up a room full of corpses.`
+          },
+          overseer_journal: {
+            id: 'overseer_journal',
+            name: 'OVERSEER_PRIVATE.LOG',
+            type: 'file',
+            content: `They look to me for hope. I have none.\n\nThe sensors show radiation spikes. The radio picks up signals I can't decode—voices that sound human but wrong. The reactor is shaking the floorboards.\n\nMy grandfather told me the surface was a graveyard. But the sensors say it's alive. And if it's alive, it's had 200 years to get strong. We are 1,000 soft people in a metal can, guarding 120 frozen corporate suits who probably caused the end of the world.\n\nGod help us if they find the door.`
+          },
+
+          // --- BLACK SITE (NEW) ---
+          black_site: {
+            id: 'black_site',
+            name: 'LEVEL 7 (BLACK SITE)',
+            type: 'folder',
+            locked: true,
+            children: ['project_chimera', 'containment_log']
+          },
+          project_chimera: {
+            id: 'project_chimera',
+            name: 'PROJECT_CHIMERA_PROPOSAL.DOC',
+            type: 'file',
+            content: `FROM: V-Tec Research Division\nTO: Overseer (Eyes Only)\n\nSUBJECT: F.E.V. Strains\n\nWe have been granted a small sample of the Forced Evolutionary Virus for "Long-Term Adaptation Study." The goal is not super-soldiers. The goal is radiation resistance. If we can tweak the human genome to process gamma radiation as energy, we won't need the Vaults anymore.\n\nWe are keeping the samples in Level 7. The residents must never know.`
+          },
+          containment_log: {
+            id: 'containment_log',
+            name: 'CONTAINMENT_BREACH_2090.LOG',
+            type: 'file',
+            content: `[2090.04.12] Test Subject 04 broke restraints. It has grown... bone plating.\n[2090.04.13] Security Team Delta lost. It ate them.\n[2090.04.14] Level 7 sealed. Concrete poured into elevator shafts. We are telling the residents it was a "Geothermal Collapse."\n\nIt is still down there. We can hear it scratching the concrete.`
+          }
+        };
+
+        const CRTOverlay = () => (
+          <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+            {/* Scanlines */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_3px,3px_100%]"></div>
+            {/* Flicker */}
+            <div className="absolute inset-0 bg-white opacity-[0.03] animate-flicker"></div>
+            {/* Vignette */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(0,0,0,0)_50%,rgba(0,0,0,1)_100%)]"></div>
+          </div>
+        );
+
+        const BootSequence = ({ onComplete }) => {
+          const [lines, setLines] = useState([]);
+          const endRef = useRef(null);
+
+          const bootText = [
+            "ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL",
+            "COPYRIGHT 2075-2077 ROBCO INDUSTRIES",
+            "-SERVER B-",
+            "> BIOS CHECK... OK",
+            "> LOADING KERNEL... OK",
+            "> CHECKING MEMORY... 64KB OK",
+            "> MOUNTING VOLUMES... OK",
+            "> LOADING HOLOTAPES... OK",
+            "> CONNECTING TO VAULT-TEC REGIONAL NET... FAILED (NO SIGNAL)",
+            "> RETRYING CONNECTION... FAILED (NO SIGNAL)",
+            "> CONNECTING TO VAULT 254 LOCAL... ESTABLISHED",
+            "> INITIALIZING BLUEPRINT SYSTEM v3.0...",
+            "> LOADING 'ARC_OS'...",
+            "...",
+            "WELCOME, ADMINISTRATOR."
+          ];
+
+          useEffect(() => {
+            let delay = 0;
+            bootText.forEach((line, index) => {
+              delay += Math.random() * 300 + 100;
+              setTimeout(() => {
+                setLines(prev => [...prev, line]);
+                if (endRef.current) endRef.current.scrollIntoView({ behavior: "smooth" });
+                if (index === bootText.length - 1) {
+                  setTimeout(onComplete, 1200);
+                }
+              }, delay);
+            });
+          }, []);
+
+          return (
+            <div className="flex flex-col h-full justify-start items-start p-8 font-mono text-green-500 text-lg md:text-xl leading-relaxed overflow-y-auto">
+              {lines.map((line, i) => (
+                <div key={i} className="animate-pulse-fast mb-1">{line}</div>
+              ))}
+              <div ref={endRef} />
+              <div className="animate-blink bg-green-500 h-6 w-3 mt-2 inline-block"></div>
+            </div>
+          );
+        };
+
+        const WindowHeader = ({ icon: Icon, title, onClose }) => (
+          <div className="bg-green-900/40 p-2 md:p-3 border-b border-green-700 flex justify-between items-center touch-none shrink-0 select-none">
+            <div className="flex items-center gap-2 text-green-400 font-bold text-sm md:text-base tracking-wider">
+              <Icon size={18} />
+              <span>{title}</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-green-500 hover:text-green-200 hover:bg-green-900/50 p-1 rounded transition-colors"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        );
+
+        // --- TERMINAL APP ---
+        const TerminalApp = ({ onClose }) => {
+          const [path, setPath] = useState(['root']);
+          const [viewingFile, setViewingFile] = useState(null);
+          const [unlocked, setUnlocked] = useState([]);
+          const [unlockInput, setUnlockInput] = useState('');
+          const [unlockTarget, setUnlockTarget] = useState(null);
+
+          const currentFolder = FILE_SYSTEM[path[path.length - 1]];
+
+          const handleNavigate = (id) => {
+            const item = FILE_SYSTEM[id];
+            if (item.type === 'file') {
+              setViewingFile(id);
+            } else {
+              if (item.locked && !unlocked.includes(id)) {
+                setUnlockTarget(id);
+              } else {
+                setPath([...path, id]);
+              }
+            }
+          };
+
+          const handleUnlock = (e) => {
+            e.preventDefault();
+            if (unlockInput.toUpperCase() === ADMIN_PASSWORD) {
+              setUnlocked([...unlocked, unlockTarget]);
+              setPath([...path, unlockTarget]);
+              setUnlockTarget(null);
+              setUnlockInput('');
+            } else {
+              setUnlockInput('');
+              alert("ACCESS DENIED: SECURITY VIOLATION LOGGED");
+            }
+          };
+
+          return (
+            <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
+              <WindowHeader icon={Terminal} title="ROBCO FILE EXPLORER v2.1" onClose={onClose} />
+
+              <div className="flex-1 p-4 overflow-hidden flex flex-col relative">
+                {unlockTarget ? (
+                  <div className="flex flex-col items-center justify-center h-full animate-fade-in p-4 text-center">
+                    <Lock size={64} className="text-red-500 mb-6 animate-pulse" />
+                    <h3 className="text-red-500 font-bold text-xl md:text-2xl mb-2">RESTRICTED ACCESS</h3>
+                    <p className="text-red-400 text-sm mb-6 max-w-xs">Enter Override Code. Too many attempts will trigger silent alarm.</p>
+                    <form onSubmit={handleUnlock} className="flex flex-col gap-4 w-full max-w-xs">
+                      <input
+                        autoFocus
+                        type="text"
+                        value={unlockInput}
+                        onChange={e => setUnlockInput(e.target.value)}
+                        className="bg-black border-2 border-green-500 text-green-500 p-3 text-center focus:outline-none focus:border-green-300 uppercase text-lg shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                        placeholder="PASSWORD"
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setUnlockTarget(null)} className="flex-1 border border-green-800 text-green-800 p-2 hover:bg-green-900/20">CANCEL</button>
+                        <button type="submit" className="flex-1 bg-green-900 hover:bg-green-700 text-green-100 p-2 font-bold transition-colors">AUTHENTICATE</button>
+                      </div>
+                    </form>
+                  </div>
+                ) : viewingFile ? (
+                  <div className="flex flex-col h-full animate-fade-in">
+                    <div className="flex justify-between items-center mb-4 border-b border-green-800 pb-2 shrink-0">
+                      <span className="text-green-300 font-bold uppercase truncate pr-4 text-sm md:text-base">
+                        {FILE_SYSTEM[viewingFile].name}
+                      </span>
+                      <button onClick={() => setViewingFile(null)} className="text-xs border border-green-500 px-3 py-1 hover:bg-green-900/50 transition-colors">
+                        CLOSE FILE
+                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pb-10">
+                      <pre className="whitespace-pre-wrap font-mono text-green-400 text-xs md:text-sm leading-relaxed max-w-3xl">
+                        {FILE_SYSTEM[viewingFile].content}
+                      </pre>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-4 text-xs text-green-600 border-b border-green-900 pb-2 overflow-x-auto whitespace-nowrap shrink-0">
+                      {path.length > 1 && (
+                        <button onClick={() => setPath(path.slice(0, -1))} className="hover:text-green-300 flex items-center p-1 mr-2 border border-green-900 hover:border-green-500">
+                          <ArrowLeft size={14} className="mr-1" /> UP
+                        </button>
+                      )}
+                      <span className="text-green-800">ROOT</span>
+                      {path.slice(1).map(id => (
+                        <span key={id} className="flex items-center">
+                          <span className="mx-1 text-green-800">/</span>
+                          <span className="text-green-500">{FILE_SYSTEM[id].name}</span>
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 overflow-y-auto custom-scrollbar pb-8">
+                      {currentFolder.children.map(childId => {
+                        const child = FILE_SYSTEM[childId];
+                        const isLocked = child.locked && !unlocked.includes(childId);
+                        return (
+                          <button
+                            key={childId}
+                            onClick={() => handleNavigate(childId)}
+                            className={`flex items-start gap-3 p-3 border transition-all text-left group
+                              ${isLocked 
+                                ? 'border-red-900/50 hover:border-red-500 bg-red-900/5' 
+                                : 'border-green-900 hover:border-green-400 hover:bg-green-900/20 bg-green-900/5'
+                              }
+                            `}
+                          >
+                            {child.type === 'folder'
+                              ? (isLocked 
+                                  ? <Lock className="text-red-500 mt-1 shrink-0" size={20}/> 
+                                  : <Folder className="text-yellow-600 group-hover:text-yellow-400 mt-1 shrink-0" size={20}/>)
+                              : <FileCode className="text-blue-500 group-hover:text-blue-300 mt-1 shrink-0" size={20}/>
+                            }
+                            <div className="overflow-hidden min-w-0">
+                              <div className={`font-bold text-sm truncate ${isLocked ? 'text-red-400' : 'text-green-300'}`}>
+                                {child.name}
+                              </div>
+                              <div className="text-[10px] text-green-700 group-hover:text-green-500">
+                                {child.type === 'folder' ? 'DIRECTORY' : 'DOCUMENT'}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        };
+
+        // --- MAIL APP ---
+        const MailApp = ({ onClose }) => {
+          const [selected, setSelected] = useState(null);
+
+          return (
+            <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
+              <WindowHeader icon={Mail} title="FLASHMAIL v1.0" onClose={onClose} />
+
+              <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+                {/* List View */}
+                <div className={`w-full md:w-1/3 border-b md:border-b-0 md:border-r border-green-800 overflow-y-auto custom-scrollbar ${selected ? 'hidden md:block' : 'block'}`}>
+                  {EMAILS.map(email => (
+                    <button
+                      key={email.id}
+                      onClick={() => setSelected(email)}
+                      className={`w-full text-left p-4 border-b border-green-900 hover:bg-green-900/20 transition-colors
+                        ${selected?.id === email.id ? 'bg-green-900/40 border-l-4 border-l-green-500' : 'border-l-4 border-l-transparent'}
+                      `}
+                    >
+                      <div className="font-bold text-green-300 text-xs md:text-sm truncate mb-1">{email.from}</div>
+                      <div className="text-green-500 text-xs md:text-sm truncate mb-1 opacity-90">{email.subject}</div>
+                      <div className="text-green-700 text-[10px] text-right">{email.date}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Reading Pane */}
+                <div className={`flex-1 p-6 overflow-y-auto bg-black custom-scrollbar ${!selected ? 'hidden md:block' : 'block'}`}>
+                  {selected ? (
+                    <div className="animate-fade-in pb-10">
+                      <button onClick={() => setSelected(null)} className="md:hidden mb-6 text-xs flex items-center gap-1 text-green-600 border border-green-800 px-3 py-2 rounded hover:text-green-400">
+                        <ArrowLeft size={12}/> BACK TO INBOX
+                      </button>
+                      
+                      <div className="border border-green-800 bg-green-900/10 p-4 mb-6">
+                        <div className="grid grid-cols-[50px_1fr] gap-2 text-xs md:text-sm">
+                          <div className="text-green-700">FROM:</div>
+                          <div className="text-green-300">{selected.from}</div>
+                          
+                          <div className="text-green-700">TO:</div>
+                          <div className="text-green-300">{selected.to}</div>
+                          
+                          <div className="text-green-700">DATE:</div>
+                          <div className="text-green-300">{selected.date}</div>
+                        </div>
+                        <div className="text-base md:text-lg font-bold text-green-400 mt-4 border-t border-green-800 pt-4">
+                          {selected.subject}
+                        </div>
+                      </div>
+
+                      <div className="text-green-400 whitespace-pre-wrap font-mono leading-relaxed text-sm md:text-base pl-2 border-l border-green-900">
+                        {selected.body}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-green-800 gap-4">
+                      <Mail size={48} className="opacity-20"/>
+                      <span className="text-sm tracking-widest uppercase">Select a message to read</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // --- MAP APP ---
+        const RoomDetailModal = ({ roomKey, data, onClose }) => {
+          if (!data) return null;
+          return (
+            <div className="absolute inset-0 bg-black/90 z-50 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
+              <div className="border-2 border-green-500 bg-black w-full max-w-lg p-6 shadow-[0_0_50px_rgba(74,222,128,0.2)]">
+                <div className="flex justify-between items-start mb-6 border-b border-green-700 pb-4">
+                  <div>
+                    <div className="text-[10px] text-green-600 uppercase tracking-widest mb-1">Sector Diagnostic</div>
+                    <h2 className="text-2xl font-bold text-green-300 uppercase">{roomKey.replace(/_/g, ' ')}</h2>
+                  </div>
+                  <button onClick={onClose} className="text-green-500 hover:text-green-100"><X size={24} /></button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-green-900/10 p-3 border border-green-800">
+                    <div className="text-[10px] text-green-600 uppercase mb-1">System Status</div>
+                    <div className={`font-bold text-lg ${data.status === 'CRITICAL' || data.status === 'WARNING' || data.status === 'BREACH' ? 'text-red-500 animate-pulse' : 'text-green-400'}`}>
+                      {data.status}
+                    </div>
+                  </div>
+                  <div className="bg-green-900/10 p-3 border border-green-800">
+                     <div className="text-[10px] text-green-600 uppercase mb-1">Structural Integrity</div>
+                     <div className="text-green-400 font-bold text-lg">{data.integrity}</div>
+                  </div>
+                  <div className="bg-green-900/10 p-3 border border-green-800">
+                     <div className="text-[10px] text-green-600 uppercase mb-1">Power Draw</div>
+                     <div className="text-green-400 font-bold text-lg">{data.power}</div>
+                  </div>
+                  <div className="bg-green-900/10 p-3 border border-green-800">
+                     <div className="text-[10px] text-green-600 uppercase mb-1">Ambient Temp</div>
+                     <div className="text-green-400 font-bold text-lg">{data.temp}</div>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-2 border-b border-green-900 pb-1">
+                     <span className="text-xs text-green-600">DEPARTMENT HEAD</span>
+                     <span className="text-xs text-green-300 font-bold">{data.staff}</span>
+                  </div>
+                  <div className="relative">
+                     <div className="absolute top-0 left-0 w-1 h-full bg-green-500/50"></div>
+                     <div className="bg-green-900/20 p-4 ml-2 text-xs text-green-400 font-mono leading-relaxed italic">
+                       "{data.log}"
+                     </div>
+                  </div>
+                </div>
+
+                <button onClick={onClose} className="w-full bg-green-900 hover:bg-green-800 text-green-100 py-3 font-bold text-xs uppercase tracking-widest border border-green-700 hover:border-green-500 transition-all">
+                  ACKNOWLEDGE ALERT
+                </button>
+              </div>
+            </div>
+          );
+        };
+
+        const MapRoom = ({ name, id, restricted, status, size = "normal", onClick }) => (
+          <button
+            onClick={() => onClick(id)}
+            className={`
+              border p-3 relative group overflow-hidden transition-all min-h-[80px] flex flex-col justify-between text-left
+              ${size === 'large' ? 'col-span-2' : 'col-span-1'}
+              ${restricted 
+                ? 'border-red-900/50 bg-red-900/5 hover:bg-red-900/20 hover:border-red-500' 
+                : 'border-green-800/50 bg-green-900/5 hover:bg-green-900/20 hover:border-green-500'
+              }
+            `}
+          >
+            {/* Scanline effect on hover */}
+            <div className="absolute inset-0 bg-green-500/10 -translate-y-full group-hover:translate-y-full transition-transform duration-1000 pointer-events-none"></div>
+
+            <div className={`text-xs md:text-sm font-bold flex justify-between w-full ${restricted ? 'text-red-500' : 'text-green-400'}`}>
+              <span>{name}</span>
+              {restricted && <Lock size={12} />}
+            </div>
+            
+            <div className="text-[9px] md:text-[10px] text-green-700 font-mono flex items-center gap-2 w-full mt-2">
+              <div className={`w-2 h-2 rounded-full ${status === 'CRITICAL' || status === 'BREACH' ? 'bg-red-500 animate-ping' : (restricted ? 'bg-red-900' : 'bg-green-500')}`}></div>
+              <span className="truncate">{status}</span>
+            </div>
+          </button>
+        );
+
+        const MapLevel = ({ depth, name, children, warning }) => (
+          <div className="flex gap-4 relative pl-8 pb-10">
+            <div className="absolute left-0 top-0 bottom-0 w-6 border-r border-dashed border-green-800/50 flex flex-col items-center py-2">
+              <div className="w-2 h-2 bg-green-800 rounded-full mb-2"></div>
+              <span className="text-[9px] text-green-800 -rotate-90 whitespace-nowrap mt-12 origin-center tracking-widest">{depth}</span>
+            </div>
+            
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <h3 className="text-sm font-bold text-green-600 border-b border-green-900 inline-block px-2">{name}</h3>
+                {warning && <span className="text-[10px] text-red-500 animate-pulse font-bold px-2 border border-red-900 bg-red-900/10">{warning}</span>}
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {children}
+              </div>
+            </div>
+          </div>
+        );
+
+        const MapApp = ({ onClose }) => {
+          const [selectedRoom, setSelectedRoom] = useState(null);
+
+          return (
+            <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] relative font-mono">
+              <WindowHeader icon={MapIcon} title="VAULT BLUEPRINT v3.0" onClose={onClose} />
+              
+              {selectedRoom && (
+                <RoomDetailModal 
+                  roomKey={selectedRoom} 
+                  data={ROOM_DATA[selectedRoom]} 
+                  onClose={() => setSelectedRoom(null)} 
+                />
+              )}
+
+              {/* Blueprint Grid Background */}
+              <div className="flex-1 overflow-auto p-6 md:p-8 bg-[linear-gradient(rgba(0,50,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,50,0,0.1)_1px,transparent_1px)] bg-[size:20px_20px] custom-scrollbar relative">
+                
+                {/* Surface - Level 0 */}
+                <div className="mb-6 relative">
+                  <div className="flex justify-center mb-2">
+                    <div className="border border-red-900 bg-red-900/10 text-red-500 px-6 py-2 text-xs font-bold tracking-widest animate-pulse">
+                      SURFACE // ZONE RED // RADIATION CRITICAL
+                    </div>
+                  </div>
+                  <div className="h-8 w-px bg-gradient-to-b from-red-900 to-green-800 mx-auto"></div>
+                   <MapLevel depth="L0 SURFACE" name="AIRLOCK ACCESS" warning="HAZARD">
+                     <MapRoom name="BLAST DOORS" id="AIRLOCK" status="SEALED" size="large" onClick={setSelectedRoom} />
+                     <MapRoom name="DECON" id="DECON" status="OFFLINE" onClick={() => {}} />
+                     <MapRoom name="OBSERVATORY" id="OBS" status="CRACKED" restricted onClick={() => {}} />
+                   </MapLevel>
+                </div>
+
+                {/* Level 1 */}
+                <MapLevel depth="L1 -50m" name="ADMINISTRATION">
+                  <MapRoom name="ELEVATOR A" id="ELV_A" status="ACTIVE" onClick={() => {}} />
+                  <MapRoom name="SECURITY HQ" id="SECURITY" status="ACTIVE" onClick={setSelectedRoom} />
+                  <MapRoom name="OVERSEER" id="OVERSEER" status="OCCUPIED" restricted onClick={setSelectedRoom} />
+                  <MapRoom name="ARCHIVES" id="ARCHIVES" status="LOCKED" onClick={() => {}} />
+                </MapLevel>
+
+                {/* Level 2 */}
+                <MapLevel depth="L2 -100m" name="HABITATION">
+                  <MapRoom name="RESIDENTIAL A" id="RES_A" status="98% CAP" size="large" onClick={() => {}} />
+                  <MapRoom name="RESIDENTIAL B" id="RES_B" status="100% CAP" size="large" onClick={() => {}} />
+                  <MapRoom name="CAFETERIA" id="CAFETERIA" status="OPEN" onClick={() => {}} />
+                  <MapRoom name="ATRIUM" id="ATRIUM" status="LIGHTS ON" onClick={() => {}} />
+                </MapLevel>
+
+                {/* Level 3 */}
+                <MapLevel depth="L3 -200m" name="OPS">
+                  <MapRoom name="HYDROPONICS" id="HYDROPONICS" status="YIELD LOW" onClick={setSelectedRoom} />
+                  <MapRoom name="MEDICAL" id="MEDICAL" status="BUSY" onClick={setSelectedRoom} />
+                  <MapRoom name="WATER PURIFICATION" id="WATER_PURIFICATION" status="OPTIMAL" size="large" onClick={setSelectedRoom} />
+                </MapLevel>
+
+                {/* Level 4 */}
+                <MapLevel depth="L4 -400m" name="ENGINEERING">
+                  <MapRoom name="REACTOR CORE" id="REACTOR" status="98.4%" size="large" onClick={setSelectedRoom} />
+                  <MapRoom name="WORKSHOP" id="WORKSHOP" status="ACTIVE" onClick={() => {}} />
+                  <MapRoom name="STORAGE A" id="STORAGE" status="LOCKED" onClick={() => {}} />
+                </MapLevel>
+
+                {/* Level 5 - NEW */}
+                <MapLevel depth="L5 -550m" name="GEOTHERMAL & STORAGE">
+                  <MapRoom name="GEOTHERMAL TAP" id="GEO_TAP" status="ONLINE" size="large" onClick={setSelectedRoom} />
+                  <MapRoom name="STORAGE B" id="STORAGE_B" status="LOCKED" onClick={setSelectedRoom} />
+                  <MapRoom name="INCINERATOR" id="INCIN" status="ACTIVE" onClick={() => {}} />
+                </MapLevel>
+
+                {/* Level 6 - MOVED DOWN */}
+                <MapLevel depth="L6 -700m" name="THE ARK">
+                  <MapRoom name="CRYO-BAY" id="CRYO-BAY" status="STASIS LOCK" restricted size="large" onClick={setSelectedRoom} />
+                  <MapRoom name="SERVER FARM" id="SERVERS" status="OFFLINE" onClick={() => {}} />
+                  <MapRoom name="BACKUP GEN" id="GEN_B" status="STANDBY" onClick={() => {}} />
+                </MapLevel>
+
+                {/* Level 7 - BLACK SITE */}
+                 <MapLevel depth="L7 -900m" name="R&D [BLACK SITE]" warning="CLASSIFIED">
+                  <MapRoom name="LAB ALPHA" id="LAB_ALPHA" status="SEALED" restricted size="large" onClick={setSelectedRoom} />
+                  <MapRoom name="SPECIMEN CONT." id="SPECIMEN_CONT" status="BREACH" restricted onClick={setSelectedRoom} />
+                </MapLevel>
+
+              </div>
+              
+              <div className="p-3 border-t border-green-800 text-[10px] text-green-600 flex justify-between px-6 shrink-0 bg-green-900/10">
+                <span>STRUCTURAL INTEGRITY: 96%</span>
+                <span>SEALED: 198 YEARS, 4 DAYS</span>
+              </div>
+            </div>
+          );
+        };
+
+        // --- STATUS APP ---
+        const StatusApp = ({ onClose }) => (
+          <div className="flex flex-col h-full bg-black border-2 border-green-700 shadow-[0_0_20px_rgba(0,255,0,0.2)] font-mono">
+            <WindowHeader icon={Activity} title="SYSTEM MONITOR" onClose={onClose} />
+            
+            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+              
+              {/* Reactor */}
+              <div className="border border-green-600 p-4 bg-green-900/5 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-2 opacity-50"><Zap size={20}/></div>
+                <h3 className="text-green-300 font-bold mb-4 flex items-center gap-2 text-sm md:text-base">REACTOR OUTPUT</h3>
+                <div className="h-6 w-full bg-green-900/50 mb-2 border border-green-800 p-1">
+                  <div className="h-full bg-green-500 w-[98%] animate-pulse relative">
+                     <div className="absolute top-0 right-0 bottom-0 w-1 bg-white/50 animate-ping"></div>
+                  </div>
+                </div>
+                <div className="text-right text-xs text-green-400 font-bold mb-4">4.2 GW (98.4% NOMINAL)</div>
+                
+                <div className="mt-4 space-y-2 font-mono">
+                  <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
+                     <span>COOLANT PUMP A</span> <span className="text-green-400">OK</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
+                     <span>COOLANT PUMP B</span> <span className="text-yellow-500 animate-pulse font-bold">VIBRATION</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-green-600 border-b border-green-900 pb-1">
+                     <span>TURBINE</span> <span className="text-green-400">OK</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Life Support */}
+              <div className="border border-green-600 p-4 bg-green-900/5">
+                <h3 className="text-green-300 font-bold mb-4 flex items-center gap-2 text-sm md:text-base"><Wind size={16}/> ATMOSPHERICS</h3>
+                <div className="flex justify-between items-end h-24 gap-3 mb-2">
+                   <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
+                      <div className="absolute bottom-0 w-full bg-green-500 h-[80%] transition-all group-hover:bg-green-400"></div>
+                      <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">O2</span>
+                   </div>
+                   <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
+                      <div className="absolute bottom-0 w-full bg-green-500 h-[82%] transition-all group-hover:bg-green-400"></div>
+                      <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">N2</span>
+                   </div>
+                   <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
+                      <div className="absolute bottom-0 w-full bg-green-500 h-[79%] transition-all group-hover:bg-green-400"></div>
+                      <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">CO2</span>
+                   </div>
+                   <div className="w-1/4 bg-green-900/30 h-full relative border border-green-800/50 group">
+                      <div className="absolute bottom-0 w-full bg-blue-500 h-[45%] transition-all group-hover:bg-blue-400"></div>
+                      <span className="absolute bottom-1 w-full text-center text-[10px] text-black font-bold">H2O</span>
+                   </div>
+                </div>
+                <div className="text-center text-xs text-green-400 tracking-wider">RECYCLERS OPERATING AT 89%</div>
+              </div>
+              
+              {/* Surface Sensors */}
+              <div className="border border-red-900 p-4 col-span-1 md:col-span-2 bg-red-900/10 relative">
+                <div className="absolute top-2 right-2 animate-pulse text-red-500"><Radio size={20} /></div>
+                <h3 className="text-red-400 font-bold mb-4 flex items-center gap-2 text-sm md:text-base">EXTERNAL SENSOR ARRAY</h3>
+                
+                {/* Seismic / Waveform Visualization */}
+                <div className="relative h-24 mb-4 border border-red-900/30 bg-black overflow-hidden">
+                   {/* Grid */}
+                   <div className="absolute inset-0 bg-[linear-gradient(transparent_9px,rgba(255,0,0,0.1)_10px),linear-gradient(90deg,transparent_9px,rgba(255,0,0,0.1)_10px)] bg-[size:10px_10px]"></div>
+                   
+                   {/* Signal Line */}
+                   <div className="flex items-end h-full gap-1 absolute bottom-0 left-0 right-0 px-2 pb-2">
+                     {[...Array(50)].map((_, i) => (
+                       <div 
+                         key={i} 
+                         className="flex-1 bg-red-500 transition-all duration-100 ease-in-out"
+                         style={{
+                           height: `${Math.random() > 0.8 ? Math.random() * 90 : Math.random() * 20}%`,
+                           opacity: 0.8
+                         }}
+                       ></div>
+                     ))}
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-xs">
+                   <div className="p-3 border border-green-900 bg-green-900/5">
+                     <div className="text-green-700 mb-1">SEISMIC</div>
+                     <div className="text-yellow-500 font-bold animate-pulse">DETECTED</div>
+                   </div>
+                   <div className="p-3 border border-green-900 bg-green-900/5">
+                     <div className="text-green-700 mb-1">AUDIO</div>
+                     <div className="text-green-400 font-bold">1400kHz</div>
+                   </div>
+                   <div className="p-3 border border-green-900 bg-green-900/5">
+                     <div className="text-green-700 mb-1">THERMAL</div>
+                     <div className="text-green-400 font-bold">NORMAL</div>
+                   </div>
+                   <div className="p-3 border border-red-900 bg-red-900/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                     <div className="text-red-700 mb-1">RADIATION</div>
+                     <div className="text-red-500 font-bold animate-pulse">CRITICAL</div>
+                   </div>
+                </div>
+                <div className="mt-4 text-[10px] text-red-400 font-mono border-t border-red-900/30 pt-2">
+                  ALERT: Unidentified high-frequency signal detected on Channel 9. Source triangulated: North-East (D.C. Ruins).
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+
+        const DesktopIcon = ({ label, icon: Icon, onClick }) => (
+          <button
+            onClick={onClick}
+            className="flex flex-col items-center justify-center gap-2 p-2 rounded hover:bg-green-900/20 active:bg-green-900/40 group w-24 md:w-28 transition-all duration-200"
+          >
+            <div className="text-green-500 group-hover:text-green-300 group-hover:scale-110 transition-transform bg-black/40 p-3 rounded-xl border border-transparent group-hover:border-green-500/30 group-hover:shadow-[0_0_15px_rgba(74,222,128,0.2)] relative">
+              <Icon size={32} className="md:w-10 md:h-10" strokeWidth={1.5} />
+              {/* Corner accents */}
+              <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-green-500/0 group-hover:border-green-500/50 transition-all"></div>
+              <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-green-500/0 group-hover:border-green-500/50 transition-all"></div>
+            </div>
+            <span className="text-[10px] md:text-xs font-bold text-green-600 group-hover:text-green-300 bg-black/60 px-2 py-1 rounded w-full text-center truncate border border-transparent group-hover:border-green-900/50 tracking-wide">
+              {label}
+            </span>
+          </button>
+        );
+
+        const MainInterface = () => {
+          const [activeApp, setActiveApp] = useState(null); 
+          const [showNote, setShowNote] = useState(false);
+          const [time, setTime] = useState(new Date());
+
+          useEffect(() => {
+            const timer = setInterval(() => setTime(new Date()), 60000);
+            return () => clearInterval(timer);
+          }, []);
+
+          return (
+            <div className="h-full flex flex-col relative font-mono">
+              {/* Background Logo */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
+                <div className="w-64 h-64 md:w-96 md:h-96 border-[20px] border-green-500 rounded-full flex items-center justify-center">
+                   <div className="text-[150px] md:text-[250px] font-bold text-green-500 tracking-tighter">V</div>
+                </div>
+              </div>
+
+              {/* Desktop Area */}
+              <div className="flex-1 p-6 md:p-10 flex content-start flex-wrap gap-4 md:gap-8 relative z-10 overflow-y-auto">
+                <DesktopIcon label="TERMINAL" icon={Terminal} onClick={() => setActiveApp('terminal')} />
+                <DesktopIcon label="MAIL" icon={Mail} onClick={() => setActiveApp('mail')} />
+                <DesktopIcon label="BLUEPRINT" icon={MapIcon} onClick={() => setActiveApp('map')} />
+                <DesktopIcon label="SENSORS" icon={Activity} onClick={() => setActiveApp('status')} />
+                <DesktopIcon label="NETWORK" icon={Wifi} onClick={() => {}} />
+                <DesktopIcon label="DATABASE" icon={Database} onClick={() => {}} />
+
+                {/* Sticky Note */}
+                <div 
+                  onClick={() => setShowNote(!showNote)}
+                  className={`
+                    absolute bottom-20 right-8 md:bottom-24 md:right-12
+                    bg-[#fef9c3] text-black p-4 w-48 md:w-56
+                    rotate-2 shadow-lg cursor-pointer transition-all duration-300 ease-out transform
+                    ${showNote ? 'scale-110 z-50 rotate-0 opacity-100 shadow-2xl translate-y-[-20px]' : 'opacity-90 hover:opacity-100 hover:scale-105 hover:rotate-1'}
+                  `}
+                >
+                  {/* Tape Effect */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-4 bg-white/40 rotate-1 shadow-sm"></div>
+
+                  <div className="text-[10px] border-b border-black/20 mb-2 pb-1 font-bold flex justify-between uppercase tracking-wider text-neutral-800">
+                     <span>URGENT</span>
+                     {showNote && <X size={12}/>}
+                  </div>
+                  <div className="font-handwriting text-sm leading-relaxed select-none text-neutral-900">
+                    Don't forget the Override Key for the Black Site logs: <br/>
+                    <span className="font-mono bg-yellow-200/50 px-1 mt-2 mb-2 inline-block font-bold border-b border-black/20 text-base">
+                      {ADMIN_PASSWORD}
+                    </span>
+                    <br/>
+                    Burn this note after memorizing.
+                    <br/>
+                    <span className="block text-right mt-2 font-bold">- Drake</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Taskbar */}
+              <div className="h-10 md:h-12 border-t-2 border-green-700 bg-green-900/20 flex items-center px-4 justify-between z-20 shrink-0 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                  <button className="bg-green-700 text-black px-4 py-1 font-bold text-xs md:text-sm hover:bg-green-500 hover:shadow-[0_0_10px_rgba(74,222,128,0.5)] flex items-center gap-2 transition-all">
+                     <Menu size={14} /> START
+                  </button>
+                  <div className="h-6 w-px bg-green-800"></div>
+                  {activeApp && (
+                    <div className="px-4 py-1 bg-green-900/40 border border-green-600 text-green-300 text-[10px] md:text-xs font-bold uppercase shadow-[0_0_10px_rgba(74,222,128,0.2)] flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                      {activeApp}
+                    </div>
+                  )}
+                </div>
+                <div className="text-[10px] md:text-xs text-green-600 font-mono flex items-center gap-4">
+                   <div className="hidden md:flex items-center gap-2">
+                     <Shield size={12}/> <span className="opacity-70">DEFCON 4</span>
+                   </div>
+                   <div className="hidden md:flex items-center gap-2">
+                     <Battery size={12}/> <span className="opacity-70">PWR 98%</span>
+                   </div>
+                   <span className="text-green-400 font-bold border-l border-green-800 pl-4">{CURRENT_DATE}</span>
+                   <span className="text-green-400 font-bold">{time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+              </div>
+
+              {/* App Windows */}
+              {activeApp && (
+                <div className="absolute inset-0 md:inset-8 z-40 p-2 md:p-0 bg-black/60 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none animate-fade-in">
+                  {activeApp === 'terminal' && <TerminalApp onClose={() => setActiveApp(null)} />}
+                  {activeApp === 'mail' && <MailApp onClose={() => setActiveApp(null)} />}
+                  {activeApp === 'map' && <MapApp onClose={() => setActiveApp(null)} />}
+                  {activeApp === 'status' && <StatusApp onClose={() => setActiveApp(null)} />}
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        function App() {
+          const [booted, setBooted] = useState(false);
+          const [crtOn, setCrtOn] = useState(false);
+
+          useEffect(() => {
+            setTimeout(() => setCrtOn(true), 100);
+          }, []);
+
+          return (
+            <div className="fixed inset-0 bg-[#050505] text-green-500 font-mono overflow-hidden selection:bg-green-500 selection:text-black cursor-default touch-none">
+              
+              {/* CRT Visual Layer */}
+              <CRTOverlay />
+
+              <div className={`h-full w-full p-2 md:p-10 transition-all duration-1000 ease-out ${crtOn ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+                
+                {/* Monitor Frame */}
+                <div className="h-full w-full border-[4px] md:border-[20px] border-[#222] rounded-lg md:rounded-[3rem] bg-[#111] relative shadow-[0_0_0_2px_#333,0_0_100px_rgba(0,20,0,0.5)] overflow-hidden flex flex-col box-border">
+                  
+                  {/* Screen Glass Reflection */}
+                  <div className="absolute top-0 right-0 w-[60%] h-[40%] bg-gradient-to-bl from-white/5 via-white/[0.02] to-transparent rounded-tr-[2rem] pointer-events-none z-50"></div>
+                  
+                  {/* Inner Bezel Shadow */}
+                  <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_20px_rgba(0,0,0,1)] z-40 rounded-lg md:rounded-[2rem]"></div>
+
+                  {/* Screen Content */}
+                  <div className="flex-1 overflow-hidden bg-[#0a0a0a] text-shadow-glow relative z-10">
+                    {!booted ? (
+                      <BootSequence onComplete={() => setBooted(true)} />
+                    ) : (
+                      <MainInterface />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
